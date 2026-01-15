@@ -1,0 +1,65 @@
+query GetDoctorDetails($doctorId: ID!) {
+  getDoctorDetails(doctorId: $doctorId) {
+    clinicAddress
+    clinicName
+    createdAt
+    doctorsSpecialties {
+      createdAt
+      id
+      specialty {
+        code
+        createdAt
+        description
+        doctorName
+        id
+        imageUrl
+        name
+        updatedAt
+      }
+      updatedAt
+    }
+    graduationYear
+    id
+    identificationFile
+    identificationNumber
+    identificationType
+    level
+    medicalCertificateFile
+    medicalLicenseFile
+    medicalSchool
+    updatedAt
+  }
+}
+
+query GetDoctor {
+  getDoctor {
+    clinicAddress
+    clinicName
+    createdAt
+    doctorsSpecialties {
+      createdAt
+      id
+      specialty {
+        code
+        createdAt
+        description
+        doctorName
+        id
+        imageUrl
+        name
+        updatedAt
+      }
+      updatedAt
+    }
+    graduationYear
+    id
+    identificationFile
+    identificationNumber
+    identificationType
+    level
+    medicalCertificateFile
+    medicalLicenseFile
+    medicalSchool
+    updatedAt
+  }
+}

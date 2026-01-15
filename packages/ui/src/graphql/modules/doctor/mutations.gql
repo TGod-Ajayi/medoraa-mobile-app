@@ -1,0 +1,5 @@
+mutation UpdateDoctor($updateDoctorInput: UpdateDoctorInput!) {
+  updateDoctor(updateDoctorInput: $updateDoctorInput) {
+    id
+  }
+}
