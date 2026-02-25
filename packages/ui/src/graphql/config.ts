@@ -5,21 +5,22 @@ import {
   CombinedProtocolErrors,
   HttpLink,
   InMemoryCache,
-} from "@apollo/client";
-import { ErrorLink } from "@apollo/client/link/error";
-import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
-import { getMainDefinition } from "@apollo/client/utilities";
-import { getItemAsync } from "expo-secure-store";
-import { createClient } from "graphql-ws";
+} from '@apollo/client';
+import { ErrorLink } from '@apollo/client/link/error';
+import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
+import { getMainDefinition } from '@apollo/client/utilities';
+import { getItemAsync } from 'expo-secure-store';
+import { createClient } from 'graphql-ws';
+import { showMessage } from 'react-native-flash-message';
 
 // import errorToast from "./error-toast";
 
 const getToken = async () => {
-  const token = await getItemAsync("token");
+  const token = await getItemAsync('token');
   if (token) {
     return token;
   }
-  return "";
+  return '';
 };
 
 const errorLink = new ErrorLink(({ error, operation }) => {
@@ -28,8 +29,13 @@ const errorLink = new ErrorLink(({ error, operation }) => {
       console.log(
         `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`
       );
-      if (typeof window !== "undefined") {
+      if (typeof window !== 'undefined') {
         // errorToast(message, extensions);
+        showMessage({
+          message,
+          type: 'danger',
+          duration: 4000,
+        });
       }
     });
   } else if (CombinedProtocolErrors.is(error)) {
@@ -51,7 +57,7 @@ const gqlClientConnect = async (ctx?: string) => {
 
   const wsLink = new GraphQLWsLink(
     createClient({
-      url: process.env.EXPO_PUBLIC_WGQL ?? "",
+      url: process.env.EXPO_PUBLIC_WGQL ?? '',
       connectionParams: {
         authorization: `Bearer ${token}`,
       },
@@ -70,8 +76,8 @@ const gqlClientConnect = async (ctx?: string) => {
     ({ query }) => {
       const definition = getMainDefinition(query);
       return (
-        definition.kind === "OperationDefinition" &&
-        definition.operation === "subscription"
+        definition.kind === 'OperationDefinition' &&
+        definition.operation === 'subscription'
       );
     },
     wsLink,
@@ -79,7 +85,7 @@ const gqlClientConnect = async (ctx?: string) => {
   );
 
   const apolloClient: ApolloClient = new ApolloClient({
-    ssrMode: typeof window === "undefined",
+    ssrMode: typeof window === 'undefined',
     cache,
     link: ApolloLink.from([errorLink, splitLink]),
   });
