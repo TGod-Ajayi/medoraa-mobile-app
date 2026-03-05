@@ -1,19 +1,19 @@
-import { HapticTab, IconSymbol } from '@repo/ui/components';
+import { IconSymbol } from '@repo/ui/components/core';
 import { Colors } from '@repo/ui/constants';
 import { Tabs } from 'expo-router';
 import { useColorScheme } from 'react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const tint = (Colors as Record<string, typeof Colors.light>)[
+    colorScheme ?? 'light'
+  ].tint;
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: (Colors as Record<string, typeof Colors.light>)[
-          colorScheme ?? 'light'
-        ].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
+        tabBarActiveTintColor: typeof tint === 'string' ? tint : '#0a7ea4',
       }}>
       <Tabs.Screen
         name='index'

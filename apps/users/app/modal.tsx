@@ -1,4 +1,4 @@
-import { ThemedText, ThemedView } from "@repo/ui/components";
+import { ThemedText, ThemedView } from '@repo/ui/components/core';
 import { Link } from "expo-router";
 import { StyleSheet } from "react-native";
 
