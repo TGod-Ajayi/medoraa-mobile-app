@@ -2,5 +2,12 @@
   "name": "medoraa-app",
   "private": true,
   "version": "0.0.0",
-  "workspaces": ["apps/*", "packages/*"]
+  "workspaces": ["apps/*", "packages/*"],
+  "overrides": {
+    "react-native-screens": "4.16.0"
+  },
+  "scripts": {
+    "fix:screens": "rm -rf node_modules/react-native-screens && npm install",
+    "fix:screens:full": "rm -rf node_modules/react-native-screens package-lock.json && npm install"
+  }
 }
