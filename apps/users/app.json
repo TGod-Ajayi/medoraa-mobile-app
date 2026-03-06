@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.myjambaicoach.medoraadoctor"
+      "bundleIdentifier": "com.medoraadoctor"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +21,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.myjambaicoach.medoraadoctor"
+      "package": "com.medoraadoctor"
     },
     "web": {
       "output": "static",
@@ -32,10 +32,10 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/medorra.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#20BEB8",
           "dark": {
             "backgroundColor": "#000000"
           }

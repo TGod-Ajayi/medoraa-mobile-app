@@ -1,14 +1,16 @@
+import { useTheme } from '../../config/theme';
 import { useRouter } from 'expo-router';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 
 export default function VerifyResetScreen() {
   const router = useRouter();
+  const theme = useTheme();
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Enter verification code</Text>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <Text style={[styles.title, { color: theme.textPrimary }]}>Enter verification code</Text>
       <Pressable
-        style={styles.button}
+        style={[styles.button, { backgroundColor: theme.accent }]}
         onPress={() => router.push('/(auth)/new-password')}
       >
         <Text style={styles.buttonText}>Continue</Text>
@@ -22,17 +24,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
     gap: 16,
   },
   title: {
     fontSize: 24,
-    color: '#111',
   },
   button: {
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: '#0D9488',
     borderRadius: 8,
   },
   buttonText: {

@@ -1,11 +1,13 @@
 import { isTokenExpired } from '@repo/ui/graphql';
+import { useTheme } from '../config/theme';
 import { useRouter } from 'expo-router';
 import { getItemAsync } from 'expo-secure-store';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 export default function IndexScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -21,10 +23,10 @@ export default function IndexScreen() {
         if (token && !expired) {
           router.replace('/(tabs)');
         } else {
-          router.replace('/(auth)/splash');
+          router.replace('/(auth)/onboarding');
         }
       } catch {
-        if (!cancelled) router.replace('/(auth)/splash');
+        if (!cancelled) router.replace('/(auth)/onboarding');
       } finally {
         if (!cancelled) setReady(true);
       }
@@ -38,11 +40,15 @@ export default function IndexScreen() {
 
   if (!ready) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0D9488' }}>
-        <ActivityIndicator size="large" color="#fff" />
+      <View style={[styles.loading, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.accent} />
       </View>
     );
   }
 
   return null;
 }
+
+const styles = StyleSheet.create({
+  loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+});
