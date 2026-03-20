@@ -2,5 +2,8 @@
   "name": "medoraa-app",
   "private": true,
   "version": "0.0.0",
-  "workspaces": ["apps/*", "packages/*"]
+  "workspaces": ["apps/*", "packages/*"],
+  "overrides": {
+    "wonka": "6.3.5"
+  }
 }
