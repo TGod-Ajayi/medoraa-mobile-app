@@ -154,3 +154,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+
+export * from './doctor';
+export * from './home';

@@ -1,12 +1,16 @@
 /**
  * App theme: light and dark color palettes.
- * Dark mode background: #0F172A (from design).
+ * Screen background: light `#F8FAFC`, dark `#1E293B` (system appearance).
  */
 
 import { useColorScheme } from '@repo/ui/hooks';
 
 export type AppTheme = {
   background: string;
+  /** Elevated cards / sections (home) */
+  card: string;
+  /** Search bar / input surfaces */
+  surfaceMuted: string;
   textPrimary: string;
   textSecondary: string;
   textMuted: string;
@@ -26,10 +30,16 @@ export type AppTheme = {
   socialButtonText: string;
   link: string;
   error: string;
+  /** Home promo strip */
+  promoBannerBg: string;
+  promoBannerText: string;
 };
 
 export const lightTheme: AppTheme = {
-  background: '#FFFFFF',
+  background: '#F8FAFC',
+  /** Slightly elevated vs soft gray background */
+  card: '#FFFFFF',
+  surfaceMuted: '#F1F5F9',
   textPrimary: '#0F172A',
   textSecondary: '#64748B',
   textMuted: '#94A3B8',
@@ -49,10 +59,15 @@ export const lightTheme: AppTheme = {
   socialButtonText: '#0F172A',
   link: '#2DC2B1',
   error: '#E53E3E',
+  promoBannerBg: '#D6EEF5',
+  promoBannerText: '#0F172A',
 };
 
 export const darkTheme: AppTheme = {
-  background: '#0F172A',
+  background: '#1E293B',
+  /** Elevated cards / tab bar on slate-800 */
+  card: '#334155',
+  surfaceMuted: '#334155',
   textPrimary: '#FFFFFF',
   textSecondary: '#94A3B8',
   textMuted: '#94A3B8',
@@ -72,6 +87,8 @@ export const darkTheme: AppTheme = {
   socialButtonText: '#FFFFFF',
   link: '#2DC2B1',
   error: '#E53E3E',
+  promoBannerBg: '#B8DCE8',
+  promoBannerText: '#0F172A',
 };
 
 export function getTheme(isDark: boolean): AppTheme {

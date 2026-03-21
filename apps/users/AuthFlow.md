@@ -1,6 +1,6 @@
 # Auth & Onboarding Flow (Users App)
 
-This document describes how authentication and onboarding are set up and how they connect to the main **(tabs)** app.
+This document describes how authentication and onboarding are set up and how they connect to the main app (**`/(tabs)`** — bottom tab navigator with Home, Doctor, Medicine, Appointment, History).
 
 ---
 
@@ -8,26 +8,23 @@ This document describes how authentication and onboarding are set up and how the
 
 ```
 app/
-  index.tsx              ← Entry: checks token, redirects to (auth) or (tabs)
-  _layout.tsx            ← Root Stack: index → (auth) → (tabs) → modal
+  index.tsx              ← Entry: checks token, redirects to (auth) or /(tabs)
+  _layout.tsx            ← Root Stack: index → (auth) → home
 
   (auth)/                 ← Auth group (Stack, no header)
     _layout.tsx
     splash.tsx            ← Splash (1.5s then → onboarding)
     onboarding.tsx        ← Onboarding → "Get started" → login
-    login.tsx             ← Login; links to sign-up, forgot-password; "Sign in" → (tabs)
+    login.tsx             ← Login; links to sign-up, forgot-password; "Sign in" → home
     sign-up.tsx           ← Sign up; "Sign in" → back to login
     forgot-password.tsx   ← Step 1: email; → verify-reset
     verify-reset.tsx      ← Step 2: code/token; → new-password
     new-password.tsx      ← Step 3: new + confirm; → reset-success
     reset-success.tsx     ← Success; "Sign in" → login
 
-  (tabs)/                 ← Main app (after auth)
-    _layout.tsx           ← Tab navigator
-    index.tsx              ← Home
-    explore.tsx           ← Explore
+  home.tsx                ← Main app (after auth), single screen (no nested Stack)
 
-  modal.tsx               ← Modal screen
+  (optional) modal.tsx    ← Add at app root if you need a modal route
 ```
 
 ---
@@ -38,10 +35,10 @@ app/
 
 - Reads `token` from **expo-secure-store** (key: `"token"`).
 - Uses `isTokenExpired(token)` from `@repo/ui/graphql` to validate.
-- **If valid token:** `router.replace('/(tabs)')` → user goes to the main app.
+- **If valid token:** `router.replace('/(tabs)')` → user goes to the main app (tabs).
 - **If no token or expired:** `router.replace('/(auth)/splash')` → user goes to auth.
 
-So the **only** gate between “logged out” and “logged in” is the token in secure store. The **(tabs)** folder is the authenticated area; **(auth)** is the unauthenticated area.
+So the **only** gate between “logged out” and “logged in” is the token in secure store. The **`/(tabs)`** route is the authenticated shell (bottom tabs); **(auth)** is the unauthenticated area.
 
 ### 2. Auth flow (unauthenticated)
 
@@ -49,31 +46,31 @@ So the **only** gate between “logged out” and “logged in” is the token i
 |------|--------|--------|
 | 1 | **Splash** | Shows “Medoraa”; after 1.5s auto-navigates to onboarding. |
 | 2 | **Onboarding** | “Get started” → replaces stack with **login**. |
-| 3 | **Login** | “Sign up” → sign-up; “Forgot password?” → forgot-password; “Sign in (demo)” → **(tabs)**. (In production, “Sign in” calls API, then `setLogInHandler(accessToken)` and `router.replace('/(tabs)')`.) |
+| 3 | **Login** | “Sign up” → sign-up; “Forgot password?” → forgot-password; “Sign in (demo)” → **tabs**. (In production, “Sign in” calls API, then `setLogInHandler(accessToken)` and `router.replace('/(tabs)')`.) |
 | 4 | **Sign up** | “Already have an account? Sign in” → back to login. (In production, form submits → `setLogInHandler` → `router.replace('/(tabs)')`.) |
 | 5 | **Forgot password** | Enter email → “Next” → **verify-reset**; “Back to login” → login. |
 | 6 | **Verify reset** | Enter code/token → “Continue” → **new-password**. |
 | 7 | **New password** | New + confirm password → “Submit” → **reset-success**. |
 | 8 | **Reset success** | “Sign in” → **login**. |
 
-All of these live under the **(auth)** group. Navigation within auth uses `router.push()` or `router.replace()` so the user can move through onboarding → login → sign-up / forgot-password → reset steps without ever seeing **(tabs)** until they have a valid token.
+All of these live under the **(auth)** group. Navigation within auth uses `router.push()` or `router.replace()` so the user can move through onboarding → login → sign-up / forgot-password → reset steps without ever seeing **home** until they have a valid token.
 
 ### 3. Main app (authenticated)
 
 - After a successful login or sign-up (and storing the token with `setLogInHandler`), the app sends the user to **`/(tabs)`**.
-- **(tabs)** contains the main tab UI (Home, Explore, etc.). Only users who passed the `index.tsx` check (valid token) or who just logged in land here.
+- **`/(tabs)`** is the main authenticated shell (bottom tab bar: Home, Doctor, Medicine, Appointment, History). Only users who passed the `index.tsx` check (valid token) or who just logged in land here.
 - Logout (when implemented) should call `onUserSignOut()` from `@repo/ui/graphql` and then `router.replace('/(auth)/login')` so the next time the app is opened, `index.tsx` will again send them to **(auth)/splash** (no token).
 
 ---
 
-## How it’s wired with (tabs)
+## How it’s wired with home
 
-- **Entry:** `app/index.tsx` is the single decision point: token valid → **(tabs)**, else → **(auth)/splash**.
-- **Root layout:** `app/_layout.tsx` defines a Stack with, in order: `index`, `(auth)`, `(tabs)`, `modal`. The app opens on `index`; `index` then redirects and never shows itself again (except briefly as a loading state).
-- **Auth → app:** From login (or sign-up), after storing the token you call `router.replace('/(tabs)')`. That replaces the current route with the tab navigator; the user cannot go back into auth with the back button.
+- **Entry:** `app/index.tsx` is the single decision point: token valid → **home**, else → **(auth)/splash**.
+- **Root layout:** `app/_layout.tsx` defines a Stack with, in order: `index`, `(auth)`, `home`. The app opens on `index`; `index` then redirects and never shows itself again (except briefly as a loading state).
+- **Auth → app:** From login (or sign-up), after storing the token you call `router.replace('/(tabs)')`. That replaces the current route with the tab shell; the user cannot go back into auth with the back button.
 - **App → auth:** On logout, clear token with `onUserSignOut()` and `router.replace('/(auth)/login')`. Next cold start will hit `index.tsx` and, because there’s no token, redirect to `/(auth)/splash`.
 
-So **(tabs)** is the “logged-in” shell; **(auth)** is the “logged-out” shell, and `index.tsx` plus token storage connect the two.
+So **home** is the “logged-in” shell; **(auth)** is the “logged-out” shell, and `index.tsx` plus token storage connect the two.
 
 ---
 

@@ -7,7 +7,6 @@
       "icon": "./assets/images/icon.png",
       "scheme": "medoraadoctor",
       "userInterfaceStyle": "automatic",
-      "newArchEnabled": false,
       "ios": {
         "supportsTablet": true,
         "bundleIdentifier": "com.medoraadoctor"
@@ -44,7 +43,7 @@
         "expo-secure-store"
       ],
       "experiments": {
-        "typedRoutes": true,
+        "typedRoutes": false,
         "reactCompiler": false
       }
     }
