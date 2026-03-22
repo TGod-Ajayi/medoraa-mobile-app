@@ -1,4 +1,5 @@
 import type { ImageSourcePropType } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { fonts } from '../../config/fonts';
@@ -10,9 +11,11 @@ type Props = {
   backgroundColor: string;
   image: ImageSourcePropType;
   onPress?: () => void;
+  /** Override outer width (e.g. horizontal carousel item). */
+  wrapStyle?: StyleProp<ViewStyle>;
 };
 
-export function CategoryCard({ label, backgroundColor, image, onPress }: Props) {
+export function CategoryCard({ label, backgroundColor, image, onPress, wrapStyle }: Props) {
   const theme = useTheme();
 
   const content = (
@@ -30,13 +33,17 @@ export function CategoryCard({ label, backgroundColor, image, onPress }: Props) 
 
   if (onPress) {
     return (
-      <Pressable onPress={onPress} style={styles.wrap} accessibilityRole='button' accessibilityLabel={label}>
+      <Pressable
+        onPress={onPress}
+        style={[styles.wrap, wrapStyle]}
+        accessibilityRole='button'
+        accessibilityLabel={label}>
         {content}
       </Pressable>
     );
   }
 
-  return <View style={styles.wrap}>{content}</View>;
+  return <View style={[styles.wrap, wrapStyle]}>{content}</View>;
 }
 
 const styles = StyleSheet.create({

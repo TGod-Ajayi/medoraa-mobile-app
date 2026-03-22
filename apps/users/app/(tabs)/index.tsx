@@ -165,7 +165,11 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.headerRow}>
-          <View style={styles.headerLeft}>
+          <Pressable
+            onPress={() => router.push('/profile')}
+            style={styles.headerLeft}
+            accessibilityRole='button'
+            accessibilityLabel='Open profile'>
             <Image source={{ uri: AVATAR }} style={styles.avatar} />
             <View>
               <Text style={[styles.hello, { color: theme.textSecondary }]}>
@@ -179,7 +183,7 @@ export default function HomeScreen() {
                 Zenifer Aniston
               </Text>
             </View>
-          </View>
+          </Pressable>
           <Pressable
             style={[styles.iconBtn, { backgroundColor: theme.card }]}
             accessibilityRole='button'

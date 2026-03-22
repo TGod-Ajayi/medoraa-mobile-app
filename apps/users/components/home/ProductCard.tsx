@@ -1,4 +1,5 @@
 import type { ImageSourcePropType } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { fonts } from '../../config/fonts';
@@ -19,6 +20,8 @@ export type ProductCardProps = {
   wishlisted?: boolean;
   onWishlistPress?: () => void;
   onAddPress?: () => void;
+  /** Override card width (e.g. fixed width for horizontal carousels). */
+  cardStyle?: StyleProp<ViewStyle>;
 };
 
 export function ProductCard({
@@ -31,11 +34,17 @@ export function ProductCard({
   wishlisted = false,
   onWishlistPress,
   onAddPress,
+  cardStyle,
 }: ProductCardProps) {
   const theme = useTheme();
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.divider }]}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: theme.card, borderColor: theme.divider },
+        cardStyle,
+      ]}>
       <View style={[styles.imageArea, { backgroundColor: theme.surfaceMuted }]}>
         {discountLabel ? <DiscountBadge label={discountLabel} /> : null}
         {onWishlistPress ? (

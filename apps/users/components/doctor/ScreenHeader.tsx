@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -7,12 +8,14 @@ import { useTheme } from '../../config/theme';
 
 type Props = {
   title: string;
+  /** e.g. cart icon — same row as title, right side */
+  rightSlot?: ReactNode;
 };
 
 /**
  * Top bar: circular back (when navigation allows) + centered title.
  */
-export function ScreenHeader({ title }: Props) {
+export function ScreenHeader({ title, rightSlot }: Props) {
   const theme = useTheme();
   const router = useRouter();
   const canGoBack = router.canGoBack();
@@ -35,7 +38,9 @@ export function ScreenHeader({ title }: Props) {
         numberOfLines={1}>
         {title}
       </Text>
-      <View style={styles.side} />
+      <View style={[styles.side, styles.sideRight]}>
+        {rightSlot}
+      </View>
     </View>
   );
 }
@@ -51,6 +56,9 @@ const styles = StyleSheet.create({
   side: {
     width: 44,
     alignItems: 'flex-start',
+  },
+  sideRight: {
+    alignItems: 'flex-end',
   },
   backBtn: {
     width: 40,
