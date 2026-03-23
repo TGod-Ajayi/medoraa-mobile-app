@@ -24,9 +24,9 @@ const getToken = async () => {
   return '';
 };
 
-const errorLink = new ErrorLink(({ error, operation }) => {
+const errorLink = new ErrorLink(({ error }) => {
   if (CombinedGraphQLErrors.is(error)) {
-    error.errors.forEach(({ message, locations, path, extensions }) => {
+    error.errors.forEach(({ message, locations, path }) => {
       console.log(
         `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`
       );
