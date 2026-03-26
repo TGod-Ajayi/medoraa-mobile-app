@@ -96,7 +96,7 @@ export default function SignUpScreen() {
             style={[styles.signUpButton, { backgroundColor: theme.accent }]}
           />
 
-          <View style={styles.dividerWrap}>
+          {/* <View style={styles.dividerWrap}>
             <View style={[styles.dividerLine, { backgroundColor: theme.divider }]} />
             <Text style={[styles.dividerText, { color: theme.dividerText }]}>or Login with</Text>
             <View style={[styles.dividerLine, { backgroundColor: theme.divider }]} />
@@ -128,7 +128,7 @@ export default function SignUpScreen() {
               borderWidth: 1,
             }}
             labelStyle={{ fontSize: 14, fontWeight: '400', color: theme.socialButtonText }}
-          />
+          /> */}
         </View>
 
         <View style={styles.footer}>

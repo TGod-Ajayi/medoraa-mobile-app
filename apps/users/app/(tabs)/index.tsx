@@ -2,6 +2,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import type { AppTheme } from '../../config/theme';
+import type { ImageSourcePropType } from 'react-native';
 import {
   Image,
   Pressable,
@@ -9,6 +10,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useColorScheme,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,36 +18,44 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CategoryCard, ProductCard, SectionHeader } from '../../components/home';
 import { fonts } from '../../config/fonts';
 import { useTheme } from '../../config/theme';
+import { allergy, brain, child, favourite, favouriteOutline, heart, kidney, pregnacy, stomach, teeth } from '@/config/svg';
+import { SvgXml } from 'react-native-svg';
+
+const doctorone = require('../../assets/images/doctorone.png');
+const doctortwo = require('../../assets/images/doctortwo.png');
+const doctorthree = require('../../assets/images/doctorthree.png');
+const doctorfour = require('../../assets/images/doctorFour.png');
+const doctorfive = require('../../assets/images/doctorFive.png');
+const banner = require('../../assets/images/banner.png');
+const cat1 = require('../../assets/images/cat1.png');
+const cat2 = require('../../assets/images/cat2.png');
+const cat3 = require('../../assets/images/cat3.png');
+const cat4 = require('../../assets/images/cat4.png');
+const product1 = require('../../assets/images/product3.png');
+const product2 = require('../../assets/images/product4.png');
+const product3 = require('../../assets/images/product5.png');
+const product4 = require('../../assets/images/product6.png');
 
 const AVATAR =
   'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop';
 
 const SERVICE_IMAGES = [
-  'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=280&fit=crop',
-  'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=280&fit=crop',
-  'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400&h=280&fit=crop',
+  doctorone,
+  doctortwo,
+  doctorthree,
 ];
 
 const DOCTOR_PHOTOS = [
-  'https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=400&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&h=400&fit=crop',
+  doctorfour,
+  doctorfive,
 ];
+
+
 
 const services = [
-  { title: 'Instant Consultation', subtitle: 'Start from $50' },
-  { title: 'Book a Specialist', subtitle: 'Start from $100' },
-  { title: 'Order Medicine', subtitle: 'Delivery in 1 hour' },
-];
-
-const departments: { name: string; icon: string; bg: string }[] = [
-  { name: 'Neurology', icon: 'brain', bg: '#1E4D3F' },
-  { name: 'Cardiology', icon: 'heart-pulse', bg: '#4A1E2E' },
-  { name: 'Gynecology', icon: 'human-pregnant', bg: '#1E3A5C' },
-  { name: 'Pediatrics', icon: 'baby-face-outline', bg: '#2D3748' },
-  { name: 'Allergy', icon: 'allergy', bg: '#1E3A5C' },
-  { name: 'Dentist', icon: 'tooth-outline', bg: '#1A5C5C' },
-  { name: 'Urology', icon: 'pill', bg: '#4A1E28' },
-  { name: 'Gastrology', icon: 'food-apple', bg: '#1E4D4D' },
+  { title: 'Instant Consultation', subtitle: 'Start from $50', image: doctorone, bgColor : "#D2F2F0" },
+  { title: 'Book a Specialist', subtitle: 'Start from $100', image: doctortwo, bgColor: "#E9F0FF"},
+  { title: 'Order Medicine', subtitle: 'Delivery in 1 hour', image: doctorthree, bgColor: "#FFDCDC"},
 ];
 
 const doctorFilters = [
@@ -64,34 +74,26 @@ const HEALTHCARE_CATEGORIES: {
   {
     id: 'rx',
     label: 'Prescribed Medicine',
-    bg: '#FFE4D6',
-    image: {
-      uri: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300&h=300&fit=crop',
-    },
+    bg: '#F0E2D9',
+    image: cat1,
   },
   {
     id: 'herbal',
     label: 'Herbal Medicine',
-    bg: '#D1FAE5',
-    image: {
-      uri: 'https://images.unsplash.com/photo-1471864196181-132ddf8b2d48?w=300&h=300&fit=crop',
-    },
+    bg: '#D5E5DA',
+    image: cat2,
   },
   {
     id: 'equip',
     label: 'Equipments',
-    bg: '#E9D5FF',
-    image: {
-      uri: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=300&h=300&fit=crop',
-    },
+    bg: '#F4EAF3',
+    image: cat3, 
   },
   {
     id: 'wellness',
     label: 'Sexual Wellness',
-    bg: '#FBCFE8',
-    image: {
-      uri: 'https://images.unsplash.com/photo-1550572017-edd951aa8f14?w=300&h=300&fit=crop',
-    },
+    bg: '#F4EAF3',
+    image: cat4,
   },
 ];
 
@@ -111,18 +113,14 @@ const POPULAR_PRODUCTS: {
     price: '$8.55',
     originalPrice: '$10.99',
     discountLabel: '-30%',
-    image: {
-      uri: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400&h=400&fit=crop',
-    },
+    image: product1,
   },
   {
     id: 'p2',
     title: 'Vitamin D3 Softgel',
     subtitle: '30 capsules',
     price: '$12.00',
-    image: {
-      uri: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=400&h=400&fit=crop',
-    },
+    image: product2,
   },
   {
     id: 'p3',
@@ -131,18 +129,14 @@ const POPULAR_PRODUCTS: {
     price: '$6.25',
     originalPrice: '$8.50',
     discountLabel: '-26%',
-    image: {
-      uri: 'https://images.unsplash.com/photo-1628771065518-0d82f826846c?w=400&h=400&fit=crop',
-    },
+    image: product3,
   },
   {
     id: 'p4',
     title: 'Omega-3 Fish Oil',
     subtitle: '60 softgels',
     price: '$18.99',
-    image: {
-      uri: 'https://images.unsplash.com/photo-1559181567-c3190ca9959b?w=400&h=400&fit=crop',
-    },
+    image: product4,
   },
 ];
 
@@ -151,10 +145,25 @@ export default function HomeScreen() {
   const theme = useTheme();
   const [filter, setFilter] = useState(0);
   const [fav1, setFav1] = useState(false);
+  const colorScheme = useColorScheme();
   const [fav2, setFav2] = useState(true);
   const [productWishlist, setProductWishlist] = useState<Record<string, boolean>>({
     p2: true,
   });
+
+  
+
+  const departments: { name: string; icon: string; bg: string }[] = [
+    { name: 'Neurology', icon: brain, bg: colorScheme == "dark" ? "#30BE4533" : "#30BE4533" },
+    { name: 'Cardiology', icon: heart, bg: colorScheme == "dark" ? "#FF5B6E33" : "#FF5B6E33" },
+    { name: 'Gynecology', icon: pregnacy, bg: colorScheme == "dark" ? "#FFBDBC33" : "#FFBDBC33"},
+    { name: 'Pediatrics', icon: child, bg: colorScheme == "dark" ? "#FC939333" : "#CBE6E7" },
+    { name: 'Allergy', icon: allergy, bg: colorScheme == "dark" ? "#34459033" : "#34459033" },
+    { name: 'Dentist', icon: teeth, bg: colorScheme == "dark" ? "#50BE9F33" : "#50BE9F33"},
+    { name: 'Urology', icon: kidney, bg: colorScheme == "dark" ? "#842F3B33" : "#842F3B33" },
+    { name: 'Gastrology', icon: stomach, bg: colorScheme == "dark" ? "#18989133" : "#18989133" },
+  ];
+  
 
   return (
     <SafeAreaView
@@ -222,19 +231,22 @@ export default function HomeScreen() {
           {services.map((s, i) => (
             <View
               key={s.title}
-              style={[styles.serviceCard, { backgroundColor: theme.card }]}>
-              <Image
-                source={{ uri: SERVICE_IMAGES[i] }}
+              style={[styles.serviceCard, { backgroundColor: colorScheme == "dark" ? "#0F172A" : "#FFFFFF" }]}>
+                <View style={[styles.serviceCardImage,{backgroundColor: s.bgColor}]}>
+                <Image
+                source={s.image}
                 style={styles.serviceImage}
               />
+                </View>
+             
               <Text
                 style={[
                   styles.serviceTitle,
-                  { color: theme.textPrimary, fontFamily: fonts.semiBold },
+                  { color: theme.textPrimary, fontFamily: fonts.semiBold, fontSize: 14, textAlign: 'center', fontWeight: '600' },
                 ]}>
                 {s.title}
               </Text>
-              <Text style={[styles.serviceSub, { color: theme.textSecondary }]}>
+              <Text style={[styles.serviceSub, { color: colorScheme == "dark" ? "#94A3B8" : "", textAlign: 'center', fontSize: 10, fontWeight: '600', }]}> 
                 {s.subtitle}
               </Text>
             </View>
@@ -246,7 +258,7 @@ export default function HomeScreen() {
           <Text
             style={[
               styles.sectionTitle,
-              { color: theme.textPrimary, fontFamily: fonts.semiBold },
+              {color: colorScheme == "dark" ? "#FFFFFF" : "#0F172A", fontFamily: "500"},
             ]}>
             Departments
           </Text>
@@ -262,12 +274,7 @@ export default function HomeScreen() {
               accessibilityRole='button'
               accessibilityLabel={d.name}>
               <View style={[styles.deptIconWrap, { backgroundColor: d.bg }]}>
-                <MaterialCommunityIcons
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  name={d.icon as any}
-                  size={28}
-                  color='#FFFFFF'
-                />
+                <SvgXml xml={d.icon} />
               </View>
               <Text
                 style={[styles.deptLabel, { color: theme.textSecondary }]}
@@ -323,13 +330,18 @@ export default function HomeScreen() {
           })}
         </ScrollView>
 
-        <View style={styles.doctorCards}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.doctorCardsRow}
+          nestedScrollEnabled>
           <DoctorCard
             photo={DOCTOR_PHOTOS[0]}
             name='Dr. Alex Zender'
             title='Cardiology Specialist'
             rating='5.0 (150)'
             theme={theme}
+            bgColor='#CBE6E7'
             favorited={fav1}
             onToggleFav={() => setFav1((v) => !v)}
             online={false}
@@ -339,12 +351,35 @@ export default function HomeScreen() {
             name='Dr. Alex Zender'
             title='Cardiology Specialist'
             rating='5.0 (150)'
+            bgColor='#C6E4FF'
             theme={theme}
             favorited={fav2}
             onToggleFav={() => setFav2((v) => !v)}
             online
           />
-        </View>
+          <DoctorCard
+            photo={DOCTOR_PHOTOS[1]}
+            name='Dr. Alex Zender'
+            title='Cardiology Specialist'
+            rating='5.0 (150)'
+            bgColor='#C6E4FF'
+            theme={theme}
+            favorited={fav2}
+            onToggleFav={() => setFav2((v) => !v)}
+            online
+          />
+          <DoctorCard
+            photo={DOCTOR_PHOTOS[1]}
+            name='Dr. Alex Zender'
+            title='Cardiology Specialist'
+            rating='5.0 (150)'
+            bgColor='#C6E4FF'
+            theme={theme}
+            favorited={fav2}
+            onToggleFav={() => setFav2((v) => !v)}
+            online
+          />
+        </ScrollView>
 
         {/* Promo */}
         <View
@@ -353,10 +388,10 @@ export default function HomeScreen() {
             { backgroundColor: theme.promoBannerBg },
           ]}>
           <View style={styles.promoLeft}>
-            <Text style={[styles.promoTitle, { color: theme.promoBannerText }]}>
+            <Text style={[styles.promoTitle, { color: "#0A0A0A" }]}>
               Get 20% OFF
             </Text>
-            <Text style={[styles.promoSub, { color: theme.promoBannerText }]}>
+            <Text style={[styles.promoSub, { color: "#475569" }]}>
               On all items on first order
             </Text>
             <Pressable
@@ -368,18 +403,18 @@ export default function HomeScreen() {
             </Pressable>
           </View>
           <Image
-            source={{
-              uri: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop',
-            }}
+            source={banner}
             style={styles.promoImage}
           />
         </View>
 
         {/* Healthcare Products */}
+        <View style={{marginTop:18}}>
         <SectionHeader
           title='Healthcare Products'
           onPressSeeAll={() => {}}
         />
+        </View>
         <View style={styles.twoColGrid}>
           {HEALTHCARE_CATEGORIES.map((c) => (
             <CategoryCard
@@ -432,54 +467,57 @@ function DoctorCard({
   rating,
   theme,
   favorited,
+  bgColor,
   onToggleFav,
   online,
 }: {
-  photo: string;
+  photo: ImageSourcePropType;
   name: string;
   title: string;
   rating: string;
   theme: AppTheme;
+  bgColor?: string;
   favorited: boolean;
   onToggleFav: () => void;
   online: boolean;
 }) {
+  const colorScheme = useColorScheme();
   return (
-    <View style={[styles.docCard, { backgroundColor: theme.card }]}>
-      <View style={styles.docPhotoWrap}>
-        <Image source={{ uri: photo }} style={styles.docPhoto} />
+    <View style={[styles.docCard, { backgroundColor: colorScheme == "dark" ? "#0F172A" : "#FFFFFF" }]}>
+      <View style={[styles.docPhotoWrap, {backgroundColor: bgColor}]}>
+        <Image source={photo} style={styles.docPhoto} />
         {online ? (
           <View style={[styles.onlineDot, { borderColor: theme.card }]} />
         ) : null}
       </View>
-      <View style={styles.docBody}>
-        <View style={styles.docTitleRow}>
-          <View style={{ flex: 1 }}>
-            <Text
+      <View style={{paddingVertical:8, display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start"}}> 
+        <View style={{display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4}}>
+        <Text
               style={[
                 styles.docName,
-                { color: theme.textPrimary, fontFamily: fonts.semiBold },
+                {
+                  color: colorScheme == "dark" ? "#FFFFFF" : "#0F172A"
+                }
               ]}>
               {name}
             </Text>
-            <Text style={[styles.docSpec, { color: theme.textSecondary }]}>
+            <Text style={[styles.docSpec, { color:"#94A3B8",  fontSize: 12, fontWeight: "500" }]}>
               {title}
             </Text>
-          </View>
-          <Pressable onPress={onToggleFav} hitSlop={12}>
-            <Ionicons
-              name={favorited ? 'heart' : 'heart-outline'}
-              size={22}
-              color={favorited ? '#E53E3E' : theme.textSecondary}
-            />
-          </Pressable>
         </View>
+         <View style={{display:"flex", width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingBottom: 4}}>
         <View style={styles.ratingRow}>
           <Ionicons name='star' size={16} color='#FBBF24' />
           <Text style={[styles.ratingText, { color: theme.textSecondary }]}>
             {rating}
           </Text>
         </View>
+        <Pressable onPress={onToggleFav} hitSlop={12}>
+          {/* Render SVG strings directly (Ionicons `name` can't take JSX). */}
+          <SvgXml xml={favorited ? favourite : favouriteOutline} width={22} height={22} />
+          </Pressable>
+         </View>
+        
       </View>
     </View>
   );
@@ -521,27 +559,29 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     gap: 10,
-    marginBottom: 24,
+    marginBottom: 12,
   },
   searchInput: { flex: 1, fontSize: 14, padding: 0 },
-  sectionTitle: { fontSize: 18, marginBottom: 14 },
+  sectionTitle: { fontSize: 16, marginBottom: 12, fontWeight: "500",},
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 14,
   },
-  seeAll: { fontSize: 14, fontWeight: '600' },
-  servicesRow: { gap: 12, paddingBottom: 4 },
+  seeAll: { fontSize: 14, fontWeight: '500' },
+  servicesRow: { gap: 12, paddingBottom: 24 },
   serviceCard: {
-    width: 160,
-    borderRadius: 16,
+    width: 112,
+    borderRadius: 10,
     overflow: 'hidden',
-    paddingBottom: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
   },
-  serviceImage: { width: '100%', height: 100, borderRadius: 12 },
-  serviceTitle: { fontSize: 14, marginTop: 10, paddingHorizontal: 10 },
-  serviceSub: { fontSize: 12, marginTop: 4, paddingHorizontal: 10 },
+  serviceCardImage: { width: 97 , height: 97, borderRadius: 10 , position: "relative"},
+  serviceImage: { width: 67, height: 73, borderRadius: 12 , position: "absolute", bottom:1, marginHorizontal:"auto", left:"17%"},
+  serviceTitle: { fontSize: 14, marginTop: 6,  },
+  serviceSub: { fontSize: 12, marginTop: 4, },
   deptGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -551,8 +591,8 @@ const styles = StyleSheet.create({
   },
   deptItem: { width: '22%', alignItems: 'center', minWidth: 72 },
   deptIconWrap: {
-    width: 56,
-    height: 56,
+    width: 72,
+    height: 72,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -567,10 +607,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipText: { fontSize: 13 },
-  doctorCards: { gap: 14, marginBottom: 24 },
-  docCard: { borderRadius: 16, overflow: 'hidden' },
-  docPhotoWrap: { position: 'relative' },
-  docPhoto: { width: '100%', height: 140, backgroundColor: '#CBD5E1' },
+  doctorCardsRow: {
+    flexDirection: 'row',
+    gap: 14,
+    marginBottom: 24,
+    paddingRight: 4,
+  },
+  docCard: { borderRadius: 16, overflow: 'hidden',  width: 163, height: 192, padding :8},
+  docPhotoWrap: { position: 'relative' , width: 147, height: 100, borderRadius: 7},
+  docPhoto: { width: 81, height: 97,  left: "20%", position: "absolute", bottom: 0,},
   onlineDot: {
     position: 'absolute',
     top: 10,
@@ -582,8 +627,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   docBody: { padding: 14 },
-  docTitleRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  docName: { fontSize: 16 },
+  docTitleRow: { flexDirection: 'column', alignItems: 'flex-start' , display: "flex", gap: 8},
+  docName: { fontSize: 14, fontWeight: "500" },
   docSpec: { fontSize: 13, marginTop: 2 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
   ratingText: { fontSize: 13 },
@@ -597,13 +642,13 @@ const styles = StyleSheet.create({
   },
   promoLeft: { flex: 1, paddingRight: 8 },
   promoTitle: { fontSize: 20, fontWeight: '700' },
-  promoSub: { fontSize: 13, marginTop: 4, opacity: 0.85 },
+  promoSub: { fontSize: 14, marginTop: 3, fontWeight: "400" },
   promoBtn: {
     alignSelf: 'flex-start',
     marginTop: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 6,
+    borderRadius:99,
   },
   promoBtnText: { color: '#FFFFFF', fontSize: 14 },
   promoImage: { width: 100, height: 100, borderRadius: 12 },
