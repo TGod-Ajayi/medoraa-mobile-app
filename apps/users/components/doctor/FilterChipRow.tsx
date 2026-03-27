@@ -26,7 +26,7 @@ export function FilterChipRow({ labels, selectedIndex, onSelect }: Props) {
             style={[
               styles.chip,
               {
-                borderColor: selected ? theme.accent : theme.divider,
+                borderColor: selected ? "#60A5FA" : "#94A3B8",
                 backgroundColor: theme.card,
               },
             ]}>
@@ -34,8 +34,8 @@ export function FilterChipRow({ labels, selectedIndex, onSelect }: Props) {
               style={[
                 styles.chipText,
                 {
-                  color: selected ? theme.accent : theme.textSecondary,
-                  fontFamily: selected ? fonts.medium : fonts.regular,
+                  color: selected ? "#20BEB8" : "#94A3B8",
+                  fontWeight: "500",
                 },
               ]}>
               {label}
@@ -51,15 +51,15 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     gap: 10,
-    paddingBottom: 4,
+    paddingBottom: 16,
   },
   chip: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 12,
     borderWidth: 1,
   },
   chipText: {
-    fontSize: 13,
+    fontSize: 12,
   },
 });
