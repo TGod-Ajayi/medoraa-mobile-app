@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
@@ -13,32 +13,11 @@ import {
 } from '../../components/doctor';
 import { SectionHeader } from '../../components/home';
 import { useTheme } from '../../config/theme';
+import { allergy, bloodPressure, brain, child, cough, diabetics, dizziness, eyeProblem, fever, headache, heart, kidney, lungs, medical, pregnacy, psycho, stomach, stomachPain, teeth, throat } from '@/config/svg';
 
-const DEPARTMENTS: { name: string; icon: string; bg: string }[] = [
-  { name: 'Neurology', icon: 'brain', bg: '#86EFAC' },
-  { name: 'Cardiology', icon: 'heart-pulse', bg: '#FDA4AF' },
-  { name: 'Gynecology', icon: 'human-pregnant', bg: '#93C5FD' },
-  { name: 'Pediatrics', icon: 'baby-face-outline', bg: '#C4B5FD' },
-  { name: 'Allergy', icon: 'allergy', bg: '#7DD3FC' },
-  { name: 'Dentist', icon: 'tooth-outline', bg: '#5EEAD4' },
-  { name: 'Urology', icon: 'pill', bg: '#FCA5A5' },
-  { name: 'Gastrology', icon: 'food-apple', bg: '#6EE7B7' },
-  { name: 'Psychology', icon: 'head-cog-outline', bg: '#A5B4FC' },
-  { name: 'Medicine', icon: 'pill-multiple', bg: '#F9A8D4' },
-  { name: 'Oncology', icon: 'ribbon', bg: '#FBBF24' },
-  { name: 'ENT', icon: 'ear-hearing', bg: '#67E8F9' },
-];
 
-const SYMPTOMS: { label: string; icon: string }[] = [
-  { label: 'Fever', icon: 'thermometer' },
-  { label: 'Cough', icon: 'weather-windy' },
-  { label: 'Blood pressure', icon: 'heart-pulse' },
-  { label: 'Diabetics', icon: 'water-outline' },
-  { label: 'Headache', icon: 'lightning-bolt' },
-  { label: 'Stomach pain', icon: 'bandage' },
-  { label: 'Dizziness', icon: 'weather-windy' },
-  { label: 'Eye problem', icon: 'eye-outline' },
-];
+
+
 
 const DOCTOR_FILTERS = ['All', 'Neurology', 'Orthopedic', 'Cardiology'];
 
@@ -75,6 +54,7 @@ const DOCTORS: {
 export default function DoctorTabScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const colorScheme = useColorScheme();
   const [chipIndex, setChipIndex] = useState(3);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({
     d1: false,
@@ -82,14 +62,40 @@ export default function DoctorTabScreen() {
     d3: false,
   });
 
+  const DEPARTMENTS: { name: string; icon: string; bg: string }[] = [
+    { name: 'Neurology', icon: brain, bg: colorScheme === "dark" ? "#30BE4533" :  "#30BE4533"}, 
+    { name: 'Cardiology', icon: heart, bg: colorScheme === "dark" ? "#FF5B6E33" :  "#FF5B6E33" },
+    { name: 'Gynecology', icon: pregnacy, bg: colorScheme === "dark" ? "#FFBDBC33" :  "#FFBDBC33"},
+    { name: 'Pediatrics', icon: child, bg: colorScheme === "dark" ? "#FC939333" :  "#FC939333"},
+    { name: 'Allergy', icon: allergy, bg: colorScheme === "dark" ? "#34459033" :  "#34459033"},
+    { name: 'Dentist', icon: teeth, bg: colorScheme === "dark" ? "#50BE9F33" :  "#50BE9F33"},
+    { name: 'Urology', icon: kidney, bg: colorScheme === "dark" ? "#842F3B33" :  "#842F3B33"},
+    { name: 'Gastrology', icon: stomach, bg: colorScheme === "dark" ? "#18989133" :  "#18989133"},
+    { name: 'Psychology', icon: psycho, bg: colorScheme === "dark" ? "#34459033" :  "#34459033" },
+    { name: 'Medicine', icon: medical , bg: colorScheme === "dark" ? "#50BE9F33" :  "#50BE9F33" },
+    { name: 'Oncology', icon: lungs, bg: colorScheme === "dark" ? "#842F3B33" :  "#842F3B33" },
+    { name: 'ENT', icon: throat, bg: colorScheme === "dark" ? "#18989133" :  "#18989133" },
+  ];
+
+  const SYMPTOMS: { label: string; icon: string, bg: string}[] = [
+    { label: 'Fever', icon: fever, bg: colorScheme === "dark" ? "#D0EED833" :  "#D0EED833" },
+    { label: 'Cough', icon: cough, bg: colorScheme === "dark" ? "#D0D6E733" :  "#D0D6E733" },
+    { label: 'Blood pressure', icon: bloodPressure, bg: colorScheme === "dark" ? "#E9F0FF33" : "#9EBAE833" },
+    { label: 'Diabetics', icon: diabetics, bg: colorScheme === "dark" ? "#D6EEEA33" :  "#D6EEEA33" },
+    { label: 'Headache', icon: headache , bg: colorScheme === "dark" ? "#E9F0FF33" :  "#E9F0FF33" },
+    { label: 'Stomach pain', icon: stomachPain, bg: colorScheme === "dark" ? "#D0EED833" :  "#D0EED833" },
+    { label: 'Dizziness', icon: dizziness , bg: colorScheme === "dark" ? "#D0D6E733" :  "#D0D6E733" },
+    { label: 'Eye problem', icon: eyeProblem, bg: colorScheme === "dark" ? "#81818133" :  "#D0EED833" },
+  ];
+
   return (
     <SafeAreaView
-      style={[styles.safe, { backgroundColor: theme.background }]}
+      style={[styles.safe, { backgroundColor: colorScheme === "dark" ? "#1E293B" : "#F8FAFC" }]}
       edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}>
-        <ScreenHeader title='Departments' />
+        <ScreenHeader title='Departments'/>
 
         <SectionTitle>Departments</SectionTitle>
         <View style={styles.grid}>
@@ -111,7 +117,7 @@ export default function DoctorTabScreen() {
               key={s.label}
               label={s.label}
               icon={s.icon}
-              backgroundColor={theme.surfaceMuted}
+              backgroundColor={s.bg}
               onPress={() => {}}
             />
           ))}

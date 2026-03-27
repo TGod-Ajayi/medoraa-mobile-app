@@ -1,7 +1,7 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, useColorScheme, View } from 'react-native';
 
 import { fonts } from '../../config/fonts';
-import { useTheme } from '../../config/theme';
+
 
 type Props = {
   children: string;
@@ -9,10 +9,11 @@ type Props = {
 
 /** Bold section heading (no See All). */
 export function SectionTitle({ children }: Props) {
-  const theme = useTheme();
+  
+  const colorScheme = useColorScheme();
   return (
     <View style={styles.wrap}>
-      <Text style={[styles.text, { color: theme.textPrimary, fontFamily: fonts.semiBold }]}>
+      <Text style={[styles.text, { color: colorScheme === "dark" ? "#FFFFFF" : "#0F172A", fontWeight: "500"}]}>
         {children}
       </Text>
     </View>
@@ -25,6 +26,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   text: {
-    fontSize: 18,
+    fontSize: 16,
   },
 });
