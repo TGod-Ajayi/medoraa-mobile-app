@@ -1,5 +1,5 @@
 import { Button, Input } from '../../components';
-import { DatePickerBottomSheet } from '../../components/appointment';
+import { DatePickerBottomSheet } from '../../components/DatePickerBottomSheet';
 import { useTheme } from '../../config/theme';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -12,10 +12,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Dimensions,
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
-import { envelope, eyeOff, eyeOn, lock } from '@/config/svg';
+import { envelope, eyeOff, eyeOn, lock } from '../../config/svg';
 import { Hooks, setLogInHandler, Types } from '@repo/ui/graphql';
 
 const MONTHS = [
@@ -27,12 +28,15 @@ function formatDate(d: Date) {
   return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+const {height, width} = Dimensions.get("window");
+
 export default function SignUpScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const [signUp, { loading }] = Hooks.useSignUpMutation();
+
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -44,22 +48,7 @@ export default function SignUpScreen() {
   const [dobSheetOpen, setDobSheetOpen] = useState(false);
 
   const handleSignUp = async () => {
-    const { data } = await signUp({
-      variables: {
-        signUpInput: {
-          email: email.trim(),
-          password,
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          role: Types.UserRoles.Patient,
-          dateOfBirth: dob.toISOString(),
-        },
-      },
-    });
-    const token = data?.signUp?.accessToken;
-    if (!token) return;
-    await setLogInHandler(token);
-    router.replace('/(tabs)');
+  
   };
 
   return (
@@ -82,7 +71,7 @@ export default function SignUpScreen() {
           </View>
         </View>
         <Text style={[styles.title, { color: theme.textPrimary }]}>Welcome to Medicare</Text>
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Welcome to medicare</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Enter your email address to get started</Text>
 
         <View style={styles.form}>
           <Input
@@ -152,11 +141,12 @@ export default function SignUpScreen() {
           />
 
           <Button
+            theme={theme}
             label={loading ? 'Signing up…' : 'Sign up'}
             onPress={handleSignUp}
             variant="primary"
             disabled={loading}
-            style={[styles.signUpButton, { backgroundColor: theme.accent }]}
+            style={[styles.signUpButton, { backgroundColor: theme.accent, borderRadius: 30 }]}
           />
 
           {/* <View style={styles.dividerWrap}>
@@ -196,7 +186,7 @@ export default function SignUpScreen() {
 
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: theme.textMuted }]}>Have an account? </Text>
-          <Pressable onPress={() => router.back()}>
+          <Pressable onPress={() => router.push('/sign-in')}>
             <Text style={[styles.footerLink, { color: theme.link }]}>sign in</Text>
           </Pressable>
         </View>
@@ -218,7 +208,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingTop: 48,
+    paddingTop: height/100 * 10,
     paddingBottom: 32,
   },
   logoWrap: {

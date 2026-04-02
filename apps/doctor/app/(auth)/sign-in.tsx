@@ -11,39 +11,30 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SvgXml } from 'react-native-svg';
 import { envelope, eyeOff, eyeOn, facebook, google, lock } from '@/config/svg';
 import { Hooks, setLogInHandler } from '@repo/ui/graphql';
+const { height, width } = Dimensions.get("window");
 
 export default function LoginScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const [login, { loading }] = Hooks.useLoginMutation();
+ 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   const handleLogin = async () => {
-    const {data} = await login({
-      variables: {
-        loginInput: {
-          email,
-          password,
-        },
-      },
-    });
-    const token = data?.login?.accessToken;
-    if (!token) return;
-    await setLogInHandler(token);
-    router.replace('/(tabs)');
+    router.push('/register-profile');
   };
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: theme.background, paddingTop: height/100 * 10 }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
@@ -122,7 +113,7 @@ export default function LoginScreen() {
                 Remember me
               </Text>
             </Pressable>
-            <Pressable onPress={() => router.push('/(auth)/forgot-password')}>
+            <Pressable onPress={() => router.push("/")}>
               <Text style={[styles.link, { color: theme.textMuted }]}>
                 Forgot Password?
               </Text>
@@ -130,6 +121,7 @@ export default function LoginScreen() {
           </View>
 
           <Button
+            theme={theme}
             label="Login"
             onPress={handleLogin}
             variant="primary"
@@ -143,7 +135,7 @@ export default function LoginScreen() {
           <Text style={[styles.footerText, { color: theme.textMuted }]}>
             Don't have an account?{' '}
           </Text>
-          <Pressable onPress={() => router.push('/(auth)/sign-up')}>
+          <Pressable onPress={() => router.push('/(auth)/signup')}>
             <Text style={[styles.footerLink, { color: theme.link }]}>signup</Text>
           </Pressable>
         </View>
