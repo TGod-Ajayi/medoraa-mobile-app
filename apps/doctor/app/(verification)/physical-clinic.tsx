@@ -13,9 +13,13 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  Dimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+
+const { height } = Dimensions.get('window');
 
 const ROLE_OPTIONS = [
   'Medical officer',
@@ -142,17 +146,19 @@ export default function PhysicalClinicScreen() {
               />
             </Pressable>
           </View>
-          <View style={styles.footer}>
+         
             <Button
               theme={theme}
-              label="Enter clinic details"
+              label="Submit KYC"
+             
+              style={{ borderRadius: 30, position:"fixed", bottom: height/100 * -30,}}
               onPress={() => {
                 void markComplete('physical-clinic');
-                router.push('/(verification)/clinic-details');
+                router.push("/(verification)");
               }}
-              style={{ backgroundColor: theme.accent, borderRadius: 30 }}
+             
             />
-          </View>
+          
         </SafeAreaView>
       </View>
 
@@ -285,7 +291,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   footer: {
-    paddingBottom: 24,
+   
   },
   sheetHeader: {
     paddingHorizontal: 20,

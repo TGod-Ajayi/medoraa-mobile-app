@@ -62,7 +62,7 @@ export default function VerifyIdentityIntroScreen() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const [consentAccepted, setConsentAccepted] = useState(false);
-  const { currentStep, isComplete } = useVerificationProgress();
+  const { currentStep } = useVerificationProgress();
 
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
@@ -79,57 +79,29 @@ export default function VerifyIdentityIntroScreen() {
       Details to provide are:
       </Text>
         <View style={styles.list}>
-          {ITEMS.map((item) => {
-            const done = isComplete(item.route);
-            return (
-              <TouchableOpacity
-                key={item.label}
-                disabled={done}
-                activeOpacity={done ? 1 : 0.75}
-                onPress={() => navigateToVerificationSection(router, item.route)}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: done }}
-                accessibilityLabel={
-                  done ? `${item.label}, completed` : `${item.label}, not completed`
-                }
-                style={[
-                  styles.row,
-                  {
-                    backgroundColor: done ? theme.surfaceMuted : theme.card,
-                    borderColor: done ? theme.divider : 'transparent',
-                    opacity: done ? 0.92 : 1,
-                  },
-                ]}>
-                <View style={styles.rowTop}>
-                  <Text
-                    style={{
-                      fontSize: 16,
-                      fontWeight: '500',
-                      color: colorScheme === 'dark' ? '#FFFFFF' : '#0F172A',
-                      flex: 1,
-                    }}>
-                    {item.label}
-                  </Text>
-                  {done ? (
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={22}
-                      color={theme.accent}
-                      accessibilityLabel="Completed"
-                    />
-                  ) : null}
-                </View>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: '400',
-                    color: done ? theme.textMuted : '#64748B',
-                  }}>
-                  {done ? 'Submitted' : item.subText}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+          {ITEMS.map((item) => (
+            <TouchableOpacity
+              key={item.label}
+              onPress={() => navigateToVerificationSection(router, item.route)}
+              style={[
+                styles.row,
+                {
+                  backgroundColor: theme.card,
+                },
+              ]}>
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: '500',
+                  color: colorScheme === 'dark' ? '#FFFFFF' : '#0F172A',
+                }}>
+                {item.label}
+              </Text>
+              <Text style={{ fontSize: 14, fontWeight: '400', color: '#64748B' }}>
+                {item.subText}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         <View style={styles.footer}>
@@ -161,7 +133,7 @@ export default function VerifyIdentityIntroScreen() {
             theme={theme}
             disabled={!consentAccepted}
             label="Accept and Continue"
-            onPress={() => router.push('/(verification)/id-documents')}
+            onPress={() => router.push("/(verification)/submitted")}
           />
         </View>
       </SafeAreaView>
@@ -199,13 +171,8 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 16,
     borderRadius: 12,
+   borderColor: "transparent",
     borderWidth: 1,
-  },
-  rowTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'stretch',
-    gap: 8,
   },
   rowLabel: {
     fontSize: 16,
