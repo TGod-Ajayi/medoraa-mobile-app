@@ -1,17 +1,28 @@
 import { Button } from '@/components';
 import { AuthStepper } from '@/components/auth-stepper';
+import { useTheme } from '@/config/theme';
 import {
   useVerificationProgress,
   VERIFICATION_TOTAL_STEPS,
 } from '@/context/verification-progress';
-import { useTheme } from '@/config/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Dimensions, Pressable, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
+import {
+  Dimensions,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useColorScheme,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-type VerificationSectionRoute = 'id-documents' | 'medical-qualification' | 'physical-clinic';
+type VerificationSectionRoute =
+  | 'id-documents'
+  | 'medical-qualification'
+  | 'physical-clinic';
 
 const ITEMS: {
   label: string;
@@ -42,7 +53,7 @@ const TOTAL_STEPS = VERIFICATION_TOTAL_STEPS;
 
 function navigateToVerificationSection(
   router: ReturnType<typeof useRouter>,
-  route: VerificationSectionRoute,
+  route: VerificationSectionRoute
 ) {
   switch (route) {
     case 'id-documents':
@@ -66,18 +77,20 @@ export default function VerifyIdentityIntroScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
-      <SafeAreaView style={[styles.safe, { paddingVertical: (height / 100) * 4 }]}>
+      <SafeAreaView
+        style={[styles.safe, { paddingVertical: (height / 100) * 4 }]}>
         <AuthStepper currentStep={currentStep} totalSteps={TOTAL_STEPS} />
 
         <Text style={[styles.headline, { color: theme.textPrimary }]}>
           Let&apos;s verify your identity
         </Text>
         <Text style={[styles.sub, { color: theme.textSecondary }]}>
-        We are required to verify your identity before you can use our service. Your information will be encrypted and stored securely.
+          We are required to verify your identity before you can use our
+          service. Your information will be encrypted and stored securely.
         </Text>
-      <Text style={{paddingBottom:16, color: "#64748B"}}>
-      Details to provide are:
-      </Text>
+        <Text style={{ paddingBottom: 16, color: '#64748B' }}>
+          Details to provide are:
+        </Text>
         <View style={styles.list}>
           {ITEMS.map((item) => (
             <TouchableOpacity
@@ -97,7 +110,8 @@ export default function VerifyIdentityIntroScreen() {
                 }}>
                 {item.label}
               </Text>
-              <Text style={{ fontSize: 14, fontWeight: '400', color: '#64748B' }}>
+              <Text
+                style={{ fontSize: 14, fontWeight: '400', color: '#64748B' }}>
                 {item.subText}
               </Text>
             </TouchableOpacity>
@@ -108,23 +122,26 @@ export default function VerifyIdentityIntroScreen() {
           <Pressable
             style={styles.consentRow}
             onPress={() => setConsentAccepted((v) => !v)}
-            accessibilityRole="checkbox"
+            accessibilityRole='checkbox'
             accessibilityState={{ checked: consentAccepted }}
-            accessibilityLabel="Consent to provide requested data">
+            accessibilityLabel='Consent to provide requested data'>
             <View
               style={[
                 styles.checkbox,
                 {
                   borderColor: theme.checkboxBorder,
-                  backgroundColor: consentAccepted ? theme.checkboxChecked : theme.inputBg,
+                  backgroundColor: consentAccepted
+                    ? theme.checkboxChecked
+                    : theme.inputBg,
                 },
               ]}>
               {consentAccepted ? (
-                <Ionicons name="checkmark" size={14} color="#fff" />
+                <Ionicons name='checkmark' size={14} color='#fff' />
               ) : null}
             </View>
             <Text style={[styles.consentText, { color: theme.textSecondary }]}>
-              By clicking on Accept and Proceed, you consent to provide us with the requested data.
+              By clicking on Accept and Proceed, you consent to provide us with
+              the requested data.
             </Text>
           </Pressable>
 
@@ -132,8 +149,8 @@ export default function VerifyIdentityIntroScreen() {
             style={{ borderRadius: 30 }}
             theme={theme}
             disabled={!consentAccepted}
-            label="Accept and Continue"
-            onPress={() => router.push("/(verification)/submitted")}
+            label='Accept and Continue'
+            onPress={() => router.push('/(verification)/submitted')}
           />
         </View>
       </SafeAreaView>
@@ -158,12 +175,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '400',
     lineHeight: 22,
-    marginBottom: 12
+    marginBottom: 12,
   },
   list: {
     gap: 12,
-    display: "flex",
-    flexDirection: "column",
+    display: 'flex',
+    flexDirection: 'column',
   },
   row: {
     flexDirection: 'column',
@@ -171,7 +188,7 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 16,
     borderRadius: 12,
-   borderColor: "transparent",
+    borderColor: 'transparent',
     borderWidth: 1,
   },
   rowLabel: {
@@ -180,12 +197,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   footer: {
-    display: "flex",
-    flexDirection: "column",
+    display: 'flex',
+    flexDirection: 'column',
     gap: 56,
     flex: 1,
     justifyContent: 'flex-end',
-    paddingBottom: height/100 * 1,
+    paddingBottom: (height / 100) * 1,
   },
   consentRow: {
     flexDirection: 'row',

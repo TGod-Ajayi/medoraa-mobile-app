@@ -17,28 +17,46 @@ import {
 import { SvgXml } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { envelope, eyeOff, eyeOn, lock } from '../../config/svg';
+import { showMessage } from 'react-native-flash-message';
 import { Hooks, setLogInHandler, Types } from '@repo/ui/graphql';
 
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 function formatDate(d: Date) {
   return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-const {height, width} = Dimensions.get("window");
+const { height, width } = Dimensions.get('window');
 
+function isValidEmail(value: string): boolean {
+  const v = value.trim();
+  if (!v) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
 export default function SignUpScreen() {
   const router = useRouter();
   const theme = useTheme();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
+  const [signUp, { loading }] = Hooks.useSignUpMutation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [dob, setDob] = useState(() => {
     const d = new Date();
@@ -47,84 +65,179 @@ export default function SignUpScreen() {
   });
   const [dobSheetOpen, setDobSheetOpen] = useState(false);
 
+
+  //Condition for validating the Input fields
+  const trimmedEmail = email.trim();
+  const emailLooksInvalid =
+    trimmedEmail.length > 0 && !isValidEmail(trimmedEmail);
+
+  const trimmedFirstName = firstName.trim();
+  const firstNameLooksInvalid = trimmedFirstName.length < 0 ;
+  const trimmedLastName = lastName.trim();
+  const lastNameLooksInvalid = trimmedLastName.length < 0 ;
+
+  const trimmedPassword = password.trim();
+  const passwordLooksInvalid = trimmedPassword.length < 0 ;
+
+  const trimmedDob = dob.toISOString();
+  const dobLooksInvalid = trimmedDob.length < 0 ;
+
   const handleSignUp = async () => {
-  
+    if (
+      !firstName.trim() ||
+      !lastName.trim() ||
+      !email.trim() ||
+      !password.trim() ||
+      !dob.toISOString()
+    ) {
+      showMessage({
+        message: 'Please fill all the fields',
+        type: 'danger',
+        duration: 4000,
+      });
+      return;
+    }
+
+    try {
+      const { data } = await signUp({
+        variables: {
+          signUpInput: {
+            email: email.trim(),
+            password,
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            role: Types.UserRoles.Doctor,
+            dateOfBirth: dob.toISOString(),
+          },
+        },
+      });
+      const token = data?.signUp?.accessToken;
+      if (!token) return;
+      await setLogInHandler(token);
+      showMessage({
+        message: 'Sign up successful',
+        type: 'success',
+        duration: 4000,
+      });
+      router.replace('/(auth)/register-profile');
+    } catch (e: any) {
+      showMessage({
+        message: e?.message,
+        type: 'danger',
+        duration: 4000,
+      });
+      return;
+    }
   };
 
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: theme.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
+        keyboardShouldPersistTaps='handled'
+        showsVerticalScrollIndicator={false}>
         <View style={styles.logoWrap}>
           <View style={[styles.logo, { backgroundColor: theme.accent }]}>
             <Image
               source={require('../../assets/images/icon.png')}
               style={styles.logoImage}
-              resizeMode="contain"
+              resizeMode='contain'
             />
           </View>
         </View>
-        <Text style={[styles.title, { color: theme.textPrimary }]}>Welcome to Medicare</Text>
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Enter your email address to get started</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>
+          Welcome to Medoraa
+        </Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+          Enter your email address to get started
+        </Text>
 
         <View style={styles.form}>
           <Input
             theme={theme}
-            label="First name"
-            placeholder="First name"
+            label='First name'
+            placeholder='First name'
             value={firstName}
             onChangeText={setFirstName}
-            autoCapitalize="words"
+            autoCapitalize='words'
             leftIcon={<SvgXml xml={envelope} />}
           />
+          {firstNameLooksInvalid ? (
+            <Text style={[styles.fieldError, { color: theme.error }]}>
+              Enter a first name
+            </Text>
+          ) : null}
           <Input
             theme={theme}
-            label="Last name"
-            placeholder="Last name"
+            label='Last name'
+            placeholder='Last name'
             value={lastName}
             onChangeText={setLastName}
-            autoCapitalize="words"
+            autoCapitalize='words'
             leftIcon={<SvgXml xml={envelope} />}
           />
+          {lastNameLooksInvalid ? (
+            <Text style={[styles.fieldError, { color: theme.error }]}>
+              Enter a last name
+            </Text>
+          ) : null}
+          
           <View style={styles.dobBlock}>
-            <Text style={[styles.dobLabel, { color: theme.inputLabel }]}>Date of birth</Text>
+            <Text style={[styles.dobLabel, { color: theme.inputLabel }]}>
+              Date of birth
+            </Text>
             <Pressable
               onPress={() => setDobSheetOpen(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Select date of birth">
+              accessibilityRole='button'
+              accessibilityLabel='Select date of birth'>
               <View
                 style={[
                   styles.dobRow,
-                  { backgroundColor: theme.inputBg, borderColor: theme.inputBorder },
+                  {
+                    backgroundColor: theme.inputBg,
+                    borderColor: theme.inputBorder,
+                  },
                 ]}>
-                <Text style={[styles.dobText, { color: theme.inputText }]} numberOfLines={1}>
+                <Text
+                  style={[styles.dobText, { color: theme.inputText }]}
+                  numberOfLines={1}>
                   {formatDate(dob)}
                 </Text>
-                <Ionicons name="calendar-outline" size={20} color={theme.textSecondary} />
+                <Ionicons
+                  name='calendar-outline'
+                  size={20}
+                  color={theme.textSecondary}
+                />
               </View>
             </Pressable>
+            {dobLooksInvalid ? (
+              <Text style={[styles.fieldError, { color: theme.error }]}>
+                Select a date of birth
+              </Text>
+            ) : null}
           </View>
           <Input
             theme={theme}
-            label="Email"
-            placeholder="example@gmail.com"
+            label='Email'
+            placeholder='example@gmail.com'
             value={email}
             onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
+            keyboardType='email-address'
+            autoCapitalize='none'
             autoCorrect={false}
             leftIcon={<SvgXml xml={envelope} />}
           />
+            {emailLooksInvalid ? (
+              <Text style={[styles.fieldError, { color: theme.error }]}>
+                Enter a valid email address
+              </Text>
+            ) : null}
           <Input
             theme={theme}
-            label="Password"
-            placeholder="Create Password"
+            label='Password'
+            placeholder='Create Password'
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!passwordVisible}
@@ -133,20 +246,27 @@ export default function SignUpScreen() {
               <Pressable
                 onPress={() => setPasswordVisible((v) => !v)}
                 hitSlop={8}
-                style={styles.inputAction}
-              >
+                style={styles.inputAction}>
                 <SvgXml xml={passwordVisible ? eyeOn : eyeOff} />
               </Pressable>
             }
           />
+          {passwordLooksInvalid ? (
+            <Text style={[styles.fieldError, { color: theme.error }]}>
+              Enter a password
+            </Text>
+          ) : null}
 
           <Button
             theme={theme}
             label={loading ? 'Signing up…' : 'Sign up'}
             onPress={handleSignUp}
-            variant="primary"
-            disabled={loading}
-            style={[styles.signUpButton, { backgroundColor: theme.accent, borderRadius: 30 }]}
+            variant='primary'
+            disabled={loading || firstNameLooksInvalid || lastNameLooksInvalid || emailLooksInvalid || passwordLooksInvalid || dobLooksInvalid}
+            style={[
+              styles.signUpButton,
+              { backgroundColor: theme.accent, borderRadius: 30 },
+            ]}
           />
 
           {/* <View style={styles.dividerWrap}>
@@ -185,9 +305,13 @@ export default function SignUpScreen() {
         </View>
 
         <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: theme.textMuted }]}>Have an account? </Text>
+          <Text style={[styles.footerText, { color: theme.textMuted }]}>
+            Have an account?{' '}
+          </Text>
           <Pressable onPress={() => router.push('/sign-in')}>
-            <Text style={[styles.footerLink, { color: theme.link }]}>sign in</Text>
+            <Text style={[styles.footerLink, { color: theme.link }]}>
+              sign in
+            </Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -208,7 +332,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingTop: height/100 * 10,
+    paddingTop: (height / 100) * 10,
     paddingBottom: 32,
   },
   logoWrap: {
@@ -241,6 +365,11 @@ const styles = StyleSheet.create({
   },
   form: {
     marginBottom: 24,
+  },
+  fieldError: {
+    fontSize: 13,
+
+    marginLeft: 2,
   },
   dobBlock: {
     marginBottom: 16,

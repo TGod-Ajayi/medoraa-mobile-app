@@ -29,7 +29,7 @@ const MONTHS_SHORT = [
 ];
 
 const CURRENT_YEAR = new Date().getFullYear();
-const MIN_YEAR = 1924;
+const MIN_YEAR = 1980;
 const YEARS_LIST = Array.from(
   { length: CURRENT_YEAR - MIN_YEAR + 1 },
   (_, i) => MIN_YEAR + i,

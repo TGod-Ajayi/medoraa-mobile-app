@@ -15,24 +15,23 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SvgXml } from 'react-native-svg';
-import { envelope, eyeOff, eyeOn, lock } from '@/config/svg';
+import { envelope, eyeOff, eyeOn, facebook, google, lock } from '@/config/svg';
 import { Hooks, setLogInHandler } from '@repo/ui/graphql';
 import { showMessage } from 'react-native-flash-message';
 
 const { height } = Dimensions.get('window');
 
-
+/** Practical email shape check (not full RFC). */
 function isValidEmail(value: string): boolean {
   const v = value.trim();
   if (!v) return false;
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
 
-
 export default function LoginScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const [signIn, { loading }] = Hooks.useLoginMutation();
+  const [forgetPassword, { loading }] = Hooks.useForgotPasswordMutation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -41,45 +40,40 @@ export default function LoginScreen() {
   const trimmedEmail = email.trim();
   const emailLooksInvalid =
     trimmedEmail.length > 0 && !isValidEmail(trimmedEmail);
-  const canLogin =
-    isValidEmail(trimmedEmail) && password.trim().length > 0;
+  const canForgetPassword =
+    isValidEmail(trimmedEmail);
 
-  const handleLogin = async () => {
-    if(!isValidEmail(trimmedEmail)){
-      showMessage({
-        message: 'Enter a valid email address',
-        type: 'danger',
-        duration: 4000,
-      });
-      return;
-    }
-    if (!canLogin) return;
-    try{
-      const { data } = await signIn({
-        variables: {
-          loginInput: {
-            email: trimmedEmail,
-            password,
-          },
-        },
-      });
-      const token = data?.login?.accessToken;
-      if (!token) return;
-      await setLogInHandler(token);
-      showMessage({
-        message: "Login successful",
-        type: "success",
-        duration: 4000,
-      })
-      router.replace("/(tabs)");
-    }
-    catch(e:any){
-      showMessage({
-        message: e?.message,
-        type: 'danger',
-        duration: 4000,
-      })
-    }
+  const handleForgetPassword = async () => {
+    if (!canForgetPassword) return;
+    try {
+        const result = await forgetPassword({
+          variables: { email: trimmedEmail },
+        });
+      
+        // GraphQL errors (HTTP 200 with errors payload) — shape depends on errorPolicy
+        if (result.errors?.length) {
+          // show result.errors[0].message
+       
+          return;
+        }
+      
+        // Optional: check your schema’s payload for business errors
+        // e.g. if (!result.data?.forgotPassword?.success) { ... }
+        showMessage({
+          message: `OTP has been sent to your email ${email}`,
+          type: "success",
+          duration: 4000,
+        });
+        router.replace('/(auth)/verify-otp');
+      } catch (e:any) {
+        // Network / HTTP failures (e.g. 404, 500) often land here
+        // ApolloError: message, networkError, graphQLErrors
+        showMessage({
+          message: e?.message,
+          type: 'danger',
+          duration: 4000,
+        });
+      }
   };
 
 
@@ -102,9 +96,9 @@ export default function LoginScreen() {
             />
           </View>
         </View>
-        <Text style={[styles.title, { color: theme.textPrimary }]}>Hello Again!</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>Reset Password</Text>
         <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-          Welcome back you've been missed!
+         let's reset your password
         </Text>
 
         <View style={styles.form}>
@@ -128,64 +122,13 @@ export default function LoginScreen() {
               </Text>
             ) : null}
           </View>
-          <Input
-            theme={theme}
-            label="Password"
-            placeholder="Enter Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!passwordVisible}
-            leftIcon={<SvgXml xml={lock} />}
-            rightContent={
-              <Pressable
-                onPress={() => setPasswordVisible((v) => !v)}
-                hitSlop={8}
-                style={styles.inputAction}
-              >
-                <SvgXml xml={passwordVisible ? eyeOn : eyeOff} />
-              </Pressable>
-            }
-          />
-
-          <View style={styles.row}>
-            <Pressable
-              style={styles.checkboxWrap}
-              onPress={() => setRememberMe((v) => !v)}
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  { borderColor: theme.checkboxBorder },
-                  rememberMe && [
-                    styles.checkboxChecked,
-                    {
-                      backgroundColor: theme.checkboxChecked,
-                      borderColor: theme.checkboxChecked,
-                    },
-                  ],
-                ]}
-              >
-                {rememberMe && (
-                  <Ionicons name="checkmark" size={14} color="#fff" />
-                )}
-              </View>
-              <Text style={[styles.checkboxLabel, { color: theme.textSecondary }]}>
-                Remember me
-              </Text>
-            </Pressable>
-            <Pressable onPress={() => router.push("/(auth)/forget-password")}>
-              <Text style={[styles.link, { color: theme.textMuted }]}>
-                Forgot Password?
-              </Text>
-            </Pressable>
-          </View>
-
+      
           <Button
             theme={theme}
-            label={loading ? 'Logging in...' : 'Login'}
-            onPress={handleLogin}
+            label={loading ? 'Resetting...' : 'Reset Password'}
+            onPress={handleForgetPassword}
             variant="primary"
-            disabled={!canLogin || loading}
+            disabled={!canForgetPassword || loading}
             style={{ backgroundColor: theme.accent, borderRadius: 30 }}
           />
 
@@ -247,8 +190,8 @@ const styles = StyleSheet.create({
   },
   fieldError: {
     fontSize: 13,
-    marginTop: 4,
-    marginBottom: 8,
+    marginTop: 2,
+    marginBottom: 3,
     marginLeft: 2,
   },
   row: {
