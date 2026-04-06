@@ -1,6 +1,6 @@
 import type { ImageSourcePropType } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, useColorScheme, View } from 'react-native';
 
 import { fonts } from '../../config/fonts';
 import { useTheme } from '../../config/theme';
@@ -37,15 +37,15 @@ export function ProductCard({
   cardStyle,
 }: ProductCardProps) {
   const theme = useTheme();
-
+const colorScheme = useColorScheme();
   return (
     <View
       style={[
         styles.card,
-        { backgroundColor: theme.card, borderColor: theme.divider },
+        { backgroundColor: colorScheme == "dark" ? "#0F172A" : "#FFFFFF", borderColor: colorScheme == "dark" ? "#334155" : "#F1F5F9" },
         cardStyle,
       ]}>
-      <View style={[styles.imageArea, { backgroundColor: theme.surfaceMuted }]}>
+      <View style={[styles.imageArea, { backgroundColor: colorScheme == "dark" ? "#1E293B" : "#F1F5F9" }]}>
         {discountLabel ? <DiscountBadge label={discountLabel} /> : null}
         {onWishlistPress ? (
           <WishlistButton active={wishlisted} onPress={onWishlistPress} />
@@ -75,9 +75,11 @@ export function ProductCard({
 const styles = StyleSheet.create({
   card: {
     width: '48%',
-    borderRadius: 14,
+    height:218,
+    borderRadius: 10,
     marginBottom: 12,
     borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#334155',
     overflow: 'hidden',
   },
   imageArea: {
