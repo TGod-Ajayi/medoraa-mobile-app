@@ -15,16 +15,29 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SvgXml } from 'react-native-svg';
 import { envelope, eyeOff, eyeOn, facebook, google, lock } from '@/config/svg';
+import { Hooks, setLogInHandler } from '@repo/ui/graphql';
 
 export default function LoginScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const [login, { loading }] = Hooks.useLoginMutation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
+    const {data} = await login({
+      variables: {
+        loginInput: {
+          email,
+          password,
+        },
+      },
+    });
+    const token = data?.login?.accessToken;
+    if (!token) return;
+    await setLogInHandler(token);
     router.replace('/(tabs)');
   };
 
@@ -41,7 +54,7 @@ export default function LoginScreen() {
         <View style={styles.logoWrap}>
           <View style={[styles.logo, { backgroundColor: theme.accent }]}>
             <Image
-              source={require('../../assets/images/medorra.png')}
+              source={require('../../assets/images/icon.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />
@@ -109,7 +122,7 @@ export default function LoginScreen() {
                 Remember me
               </Text>
             </Pressable>
-            <Pressable onPress={() => router.push('/(auth)/forgot-password')}>
+            <Pressable onPress={() => router.push('/(auth)/forget-password')}>
               <Text style={[styles.link, { color: theme.textMuted }]}>
                 Forgot Password?
               </Text>
@@ -123,49 +136,7 @@ export default function LoginScreen() {
             style={{ backgroundColor: theme.accent }}
           />
 
-          <View style={styles.dividerWrap}>
-            <View style={[styles.dividerLine, { backgroundColor: theme.divider }]} />
-            <Text style={[styles.dividerText, { color: theme.dividerText }]}>
-              or Login with
-            </Text>
-            <View style={[styles.dividerLine, { backgroundColor: theme.divider }]} />
-          </View>
-
-          <Button
-            label="Continue with google"
-            onPress={() => {}}
-            variant="secondary"
-            leftIcon={<SvgXml xml={google} />}
-            style={{
-              borderRadius: 2,
-              backgroundColor: theme.socialButtonBg,
-              borderColor: theme.socialButtonBorder,
-              borderWidth: 1,
-            }}
-            labelStyle={{
-              fontSize: 14,
-              fontWeight: '400',
-              color: theme.socialButtonText,
-            }}
-          />
-          <View style={styles.buttonSpacer} />
-          <Button
-            label="Continue with Facebook"
-            onPress={() => {}}
-            variant="secondary"
-            leftIcon={<SvgXml xml={facebook} />}
-            style={{
-              borderRadius: 2,
-              backgroundColor: theme.socialButtonBg,
-              borderColor: theme.socialButtonBorder,
-              borderWidth: 1,
-            }}
-            labelStyle={{
-              fontSize: 14,
-              fontWeight: '400',
-              color: theme.socialButtonText,
-            }}
-          />
+        
         </View>
 
         <View style={styles.footer}>

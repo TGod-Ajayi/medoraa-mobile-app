@@ -70,15 +70,17 @@ export function DoctorHorizontalCard({
 
 const styles = StyleSheet.create({
   card: {
-    width: 200,
+    width: 163,
     borderRadius: 14,
+    height:192,
     marginRight: 12,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
+    padding:8,
   },
   imageBlock: {
-    height: 120,
-    backgroundColor: '#BFDBFE',
+    height: 100,
+    borderRadius: 4,
     position: 'relative',
   },
   photo: {

@@ -21,3 +21,7 @@ mutation ResetPassword($newPassword: String!, $token: String!) {
 mutation ChangePassword($newPassword: String!, $oldPassword: String!) {
   changePassword(newPassword: $newPassword, oldPassword: $oldPassword)
 }
+
+mutation VerifyResetOtp($email: String!, $otp: String!) {
+  verifyResetOtp(email: $email, otp: $otp)
+}

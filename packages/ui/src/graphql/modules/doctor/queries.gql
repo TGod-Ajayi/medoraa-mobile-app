@@ -63,3 +63,17 @@ query GetDoctor {
     updatedAt
   }
 }
+
+
+query GetSpecialties {
+  getSpecialties {
+    code
+    createdAt
+    description
+    doctorName
+    id
+    imageUrl
+    name
+    updatedAt
+  }
+}

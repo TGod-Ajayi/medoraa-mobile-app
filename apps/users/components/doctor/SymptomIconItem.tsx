@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
 
 import { useTheme } from '../../config/theme';
+import { SvgXml } from 'react-native-svg';
 
 export type SymptomIconItemProps = {
   label: string;
@@ -18,19 +19,14 @@ export function SymptomIconItem({
   backgroundColor,
   onPress,
 }: SymptomIconItemProps) {
-  const theme = useTheme();
-
+ 
+  const colorScheme = useColorScheme();
   const inner = (
     <>
-      <View style={[styles.iconWrap, { backgroundColor }]}>
-        <MaterialCommunityIcons
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          name={icon as any}
-          size={32}
-          color={theme.accent}
-        />
+      <View style={[styles.iconWrap, { backgroundColor}]}>
+        <SvgXml xml={icon} width={32} height={32}/>
       </View>
-      <Text style={[styles.label, { color: theme.textSecondary }]} numberOfLines={2}>
+      <Text style={[styles.label, { color: colorScheme === "dark" ? "#94A3B8" : "#64748B" }]} numberOfLines={2}>
         {label}
       </Text>
     </>
@@ -67,7 +63,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   label: {
-    fontSize: 11,
+    fontSize: 14,
+    fontWeight: "500",
     textAlign: 'center',
   },
 });
