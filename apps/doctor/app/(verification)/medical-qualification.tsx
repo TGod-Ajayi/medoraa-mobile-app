@@ -23,8 +23,10 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Hooks } from '@repo/ui/graphql';
+import { showMessage } from 'react-native-flash-message';
 
-const MIN_YEAR = 1980;
+const MIN_YEAR = 1970;
 const YEAR_COLUMNS = 4;
 
 const {height} = Dimensions.get("window");
@@ -49,7 +51,7 @@ export default function MedicalQualificationScreen() {
   const [year, setYear] = useState('');
   const [frontUpload, setFrontUpload] = useState<PickedDocument | null>(null);
   const colorScheme = useColorScheme();
-
+const [updateDoctor, {loading}] = Hooks.useUpdateDoctorMutation();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const yearOptions = useMemo(() => buildYearOptions(), []);
   const snapPoints = useMemo(() => ['52%', '72%'], []);
@@ -109,6 +111,8 @@ export default function MedicalQualificationScreen() {
     [theme.accent, theme.divider, theme.surfaceMuted, theme.textPrimary, year]
   );
 
+
+
   const handlePickFront = useCallback(async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -127,6 +131,37 @@ export default function MedicalQualificationScreen() {
       // no-op: user cancelled or platform denied access
     }
   }, []);
+
+  // const handleUpdateDoctor = async() => {
+  //   if(!institution || !degree || !year || !frontUpload){
+  //     showMessage({
+  //       message: "Please fill all the fields",
+  //       type: "danger",
+  //       duration: 4000,
+  //     })
+  //     return;
+  //   }
+  //   try{
+  //     const {data} = await updateDoctor({
+  //       variables: {
+  //         updateDoctorInput: {
+  //           medicalSchool: institution as string,
+  //           graduationYear: Number(year),
+  //           medicalCertificate: frontUpload?.uri,
+  //         }
+  //       }
+  //     })
+  //   }
+  //   catch(err: any){
+  //     showMessage({
+  //       message: err?.message,
+  //       type: "danger",
+  //       duration: 4000,
+  //     })
+  //     return;
+  //   }
+  // }
+
   return (
     <>
       <KeyboardAvoidingView
@@ -146,13 +181,13 @@ export default function MedicalQualificationScreen() {
               value={institution}
               onChangeText={setInstitution}
             />
-            <Input
+            {/* <Input
               theme={theme}
               label="Degree"
               placeholder="e.g. MBBS"
               value={degree}
               onChangeText={setDegree}
-            />
+            /> */}
 
             <Pressable
               onPress={openYearSheet}
@@ -197,7 +232,7 @@ export default function MedicalQualificationScreen() {
             <View style={{ padding: 16, borderWidth: 1,  borderRadius: 8, backgroundColor: theme.card, borderColor: "transparent", flexDirection: 'column', alignItems: 'flex-start', gap: 16, width: '100%', minHeight: 144 }}>
               <View style={{display: "flex", flexDirection: "column", gap:4, alignItems: "flex-start"}}>
               <Text style={{color: colorScheme === "dark" ? "#FFFFFF" : "#0F172A", fontSize: 16, fontWeight: "500"}}>Upload current medical License</Text>
-              <Text style={{color: "#94A3B8", fontSize: 14, fontWeight: "400"}}>JPEG, PNG, PDF (min 4MB - max 8MB)</Text>
+              <Text style={{color: "#94A3B8", fontSize: 14, fontWeight: "400"}}>JPEG, PNG, PDF (max 8MB)</Text>
               </View>
               <TouchableOpacity
                 onPress={handlePickFront}
@@ -218,7 +253,11 @@ export default function MedicalQualificationScreen() {
               style={{ borderRadius: 30, position:"fixed", bottom: height/100 * -8,}}
               onPress={() => {
                 void markComplete('medical-qualification');
-                router.push('/(verification)');
+                router.push({pathname:"/(verification)/physical-clinic", params: {
+                  medicalSchool: institution,
+                  graduationYear: Number(year),
+                  medicalCertificate: frontUpload?.uri,
+                }});
               }}
             />
           </ScrollView>

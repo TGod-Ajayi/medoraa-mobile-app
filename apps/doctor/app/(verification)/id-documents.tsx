@@ -16,7 +16,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const verificationMethods = [
   { id: 1, title: 'National ID' },
   { id: 2, title: 'International Passport' },
-  { id: 3, title: "Driver's License" },
 ] as const;
 
 const { height } = Dimensions.get('window');
@@ -145,7 +144,7 @@ export default function IdDocumentsScreen() {
             />
             {selectedMethod === 'national_id' && (
               <>
-              <Input
+              {/* <Input
                
                theme={theme}
                label="Name"
@@ -154,7 +153,7 @@ export default function IdDocumentsScreen() {
                onChangeText={setName}
                autoCapitalize="words"
                autoCorrect={false}
-             />
+             /> */}
              <Input
                theme={theme}
                label="NIN Number"
@@ -163,7 +162,7 @@ export default function IdDocumentsScreen() {
                onChangeText={(text) => setNinNumber(Number(text))}
                keyboardType="numeric"
              />
-               <Input
+               {/* <Input
                theme={theme}
                label="Address"
                placeholder="Enter Address"
@@ -171,7 +170,7 @@ export default function IdDocumentsScreen() {
                onChangeText={setAddress}
                autoCapitalize="words"
                autoCorrect={false}
-             />
+             /> */}
              <View style={{ padding: 16, borderWidth: 1,  borderRadius: 8, backgroundColor: theme.card, borderColor: "transparent", flexDirection: 'column', alignItems: 'flex-start', gap: 16, width: '100%', minHeight: 144 }}>
               <View style={{display: "flex", flexDirection: "column", gap:4, alignItems: "flex-start"}}>
               <Text style={{color: colorScheme === "dark" ? "#FFFFFF" : "#0F172A", fontSize: 16, fontWeight: "500"}}>Upload front of your NIN slip</Text>

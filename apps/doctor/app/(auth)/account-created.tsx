@@ -60,7 +60,7 @@ export default function AccountCreatedScreen() {
           </View>
           <Text style={[styles.title, { color: theme.textPrimary }]}>Account created!</Text>
           <Text style={[styles.sub, { color: theme.textSecondary }]}>
-          You have successfully created your doctor account on MedCure. Now, complete your KYC to to begin consultation.
+          You have successfully created your doctor account on Medoraa. Now, complete your KYC to to begin consultation.
           </Text>
         </View>
         <Button

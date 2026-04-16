@@ -7,8 +7,8 @@ import BottomSheet, {
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -17,18 +17,20 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Hooks } from '@repo/ui/graphql';
 
 
 const { height } = Dimensions.get('window');
 
 const ROLE_OPTIONS = [
-  'Medical officer',
-  'Senior resident',
-  'Junior resident',
-  'Consultant',
+  'CONSULTANT',
+  'JUNIOR_RESIDENT',
+  'MEDICAL_OFFICER',
+  'SENIOR_RESIDENT',
 ] as const;
 
-const SPECIALIZATION_OPTIONS = [
+/** Used until `getSpecialties` returns, or if the API returns an empty list. */
+const FALLBACK_SPECIALIZATION_LABELS: string[] = [
   'General practice',
   'Internal medicine',
   'Pediatrics',
@@ -41,7 +43,7 @@ const SPECIALIZATION_OPTIONS = [
   'Emergency medicine',
   'Anesthesiology',
   'Radiology',
-] as const;
+];
 
 export default function PhysicalClinicScreen() {
   const theme = useTheme();
@@ -54,8 +56,29 @@ export default function PhysicalClinicScreen() {
 
   const roleSheetRef = useRef<BottomSheet>(null);
   const specializationSheetRef = useRef<BottomSheet>(null);
+  const [updateDoctor, { loading: updateDoctorLoading }] =
+    Hooks.useUpdateDoctorMutation();
+  const { data: specialtiesData } = Hooks.useGetSpecialtiesQuery();
+  const { medicalSchool, graduationYear, medicalCertificate } =
+    useLocalSearchParams<{
+      medicalSchool?: string;
+      graduationYear?: string;
+      medicalCertificate?: string;
+    }>();
   const snapPoints = useMemo(() => ['38%', '48%'], []);
   const specializationSnapPoints = useMemo(() => ['45%', '62%'], []);
+
+  useEffect(() => {
+console.log("response from the specialization ", specialtiesData);
+  }, [specialtiesData]);
+
+  const specializationLabels = useMemo((): string[] => {
+    const fromApi =
+      specialtiesData?.getSpecialties
+        ?.map((s) => s.name)
+        .filter((n): n is string => Boolean(n)) ?? [];
+    return fromApi.length > 0 ? fromApi : [...FALLBACK_SPECIALIZATION_LABELS];
+  }, [specialtiesData]);
 
   const renderBackdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
@@ -99,8 +122,8 @@ export default function PhysicalClinicScreen() {
               style={styles.fieldPress}>
               <Input
                 theme={theme}
-                label="Role"
-                placeholder="Select role"
+                label="Level"
+                placeholder="Select Level"
                 value={role}
                 editable={false}
                 showSoftInputOnFocus={false}
@@ -154,6 +177,12 @@ export default function PhysicalClinicScreen() {
               style={{ borderRadius: 30, position:"fixed", bottom: height/100 * -30,}}
               onPress={() => {
                 void markComplete('physical-clinic');
+                // TODO: call updateDoctor with clinic + params from prior steps
+                void updateDoctor;
+                void medicalSchool;
+                void graduationYear;
+                void medicalCertificate;
+                void updateDoctorLoading;
                 router.push("/(verification)");
               }}
              
@@ -172,7 +201,7 @@ export default function PhysicalClinicScreen() {
         handleIndicatorStyle={{ backgroundColor: theme.divider }}>
         <View style={styles.sheetHeader}>
           <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>
-            Select role
+            Select Level
           </Text>
         </View>
         <BottomSheetScrollView
@@ -206,7 +235,7 @@ export default function PhysicalClinicScreen() {
                       fontWeight: selected ? '600' : '500',
                     },
                   ]}>
-                  {label}
+                  {label.toLocaleLowerCase().replace("_", " ")}
                 </Text>
                 {selected ? (
                   <Ionicons name="checkmark" size={22} color={theme.accent} />
@@ -233,7 +262,7 @@ export default function PhysicalClinicScreen() {
         <BottomSheetScrollView
           contentContainerStyle={styles.roleList}
           showsVerticalScrollIndicator>
-          {SPECIALIZATION_OPTIONS.map((label) => {
+          {specializationLabels.map((label) => {
             const selected = specialization === label;
             return (
               <Pressable

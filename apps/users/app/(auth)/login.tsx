@@ -122,7 +122,7 @@ export default function LoginScreen() {
                 Remember me
               </Text>
             </Pressable>
-            <Pressable onPress={() => router.push('/(auth)/forgot-password')}>
+            <Pressable onPress={() => router.push('/(auth)/forget-password')}>
               <Text style={[styles.link, { color: theme.textMuted }]}>
                 Forgot Password?
               </Text>

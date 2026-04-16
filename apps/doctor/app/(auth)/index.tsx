@@ -1,55 +1,30 @@
-import { useTheme } from '@/config/theme';
-import { Redirect, useRouter } from 'expo-router';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useDoctorStartupRoute } from '@/hooks/use-doctor-startup-route';
+import { Redirect } from 'expo-router';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 /**
- * Splash — logo on teal (matches native splash background).
+ * Default route when opening `/(auth)` without a child path.
+ * Uses the same startup rules as `app/index.tsx`.
  */
-export default function SplashScreen() {
-  const theme = useTheme();
-  
+export default function AuthIndexScreen() {
+  const { ready, href } = useDoctorStartupRoute();
 
-  return (
-    <View style={[styles.root, { backgroundColor: theme.accent }]}>
-     <Redirect href="/(auth)/onboarding" />
-    </View>
-  );
+  if (!ready || !href) {
+    return (
+      <View style={styles.boot}>
+        <ActivityIndicator size="large" color="#20BEB8" />
+      </View>
+    );
+  }
+
+  return <Redirect href={href} />;
 }
 
 const styles = StyleSheet.create({
-  root: {
+  boot: {
     flex: 1,
-  },
-  safe: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingBottom: 32,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-  },
-  logo: {
-    width: 120,
-    height: 120,
-    borderRadius: 28,
-  },
-  appName: {
-    marginTop: 16,
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  cta: {
-    minHeight: 52,
-    borderRadius: 12,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  ctaLabel: {
-    fontSize: 17,
-    fontWeight: '600',
+    backgroundColor: '#20BEB8',
   },
 });

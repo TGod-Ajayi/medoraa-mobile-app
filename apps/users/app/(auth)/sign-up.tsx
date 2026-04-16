@@ -81,8 +81,8 @@ export default function SignUpScreen() {
             />
           </View>
         </View>
-        <Text style={[styles.title, { color: theme.textPrimary }]}>Welcome to Medicare</Text>
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Welcome to medicare</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>Welcome to Medoraa</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Welcome to medoraa</Text>
 
         <View style={styles.form}>
           <Input

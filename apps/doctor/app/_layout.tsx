@@ -1,4 +1,5 @@
 import { ApolloProvider } from '@apollo/client/react';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import FlashMessage from 'react-native-flash-message';
 import {
   DarkTheme,
@@ -24,15 +25,17 @@ export default function RootLayout() {
     <ApolloProvider client={gqlClientConnect()}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
-          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(verification)" />
-              <Stack.Screen name="(tabs)" />
-            </Stack>
-            <StatusBar style="auto" />
-          </ThemeProvider>
+          <BottomSheetModalProvider>
+            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(verification)" />
+                <Stack.Screen name="(tabs)" />
+              </Stack>
+              <StatusBar style="auto" />
+            </ThemeProvider>
+          </BottomSheetModalProvider>
           <FlashMessage position="top" floating={true} />
         </SafeAreaProvider>
       </GestureHandlerRootView>

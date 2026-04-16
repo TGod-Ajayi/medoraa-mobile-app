@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
-import { envelope, eyeOff, eyeOn, lock } from '../../config/svg';
+import { envelope, eyeOff, eyeOn, lock, profile } from '../../config/svg';
 import { showMessage } from 'react-native-flash-message';
 import { Hooks, setLogInHandler, Types } from '@repo/ui/graphql';
 
@@ -119,7 +119,7 @@ export default function SignUpScreen() {
         type: 'success',
         duration: 4000,
       });
-      router.replace('/(auth)/register-profile');
+      router.replace("/(verification)");
     } catch (e: any) {
       showMessage({
         message: e?.message,
@@ -162,7 +162,7 @@ export default function SignUpScreen() {
             value={firstName}
             onChangeText={setFirstName}
             autoCapitalize='words'
-            leftIcon={<SvgXml xml={envelope} />}
+            leftIcon={<SvgXml xml={profile} />}
           />
           {firstNameLooksInvalid ? (
             <Text style={[styles.fieldError, { color: theme.error }]}>
@@ -176,7 +176,7 @@ export default function SignUpScreen() {
             value={lastName}
             onChangeText={setLastName}
             autoCapitalize='words'
-            leftIcon={<SvgXml xml={envelope} />}
+            leftIcon={<SvgXml xml={profile} />}
           />
           {lastNameLooksInvalid ? (
             <Text style={[styles.fieldError, { color: theme.error }]}>

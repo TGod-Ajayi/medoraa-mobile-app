@@ -6,7 +6,7 @@ import {
     shieldCheck,
   } from '@/config/svg';
   import { Ionicons } from '@expo/vector-icons';
-  import { useRouter } from 'expo-router';
+  import { useLocalSearchParams, useRouter } from 'expo-router';
   import { useEffect, useRef, useState } from 'react';
   import {
     Image,
@@ -23,26 +23,33 @@ import {
   import { Button, Input } from '../../components';
   import { fonts } from '../../config/fonts';
   import { useTheme } from '../../config/theme';
+import { Hooks } from '@repo/ui/graphql';
+import { showMessage } from 'react-native-flash-message';
+import { itAsync } from '@apollo/client/v4-migration/v4-migration.cjs';
   
   const TEAL_FOCUS = '#4CCBC6';
   
-  const OTP_LENGTH = 4;
+  const OTP_LENGTH = 6;
   const RESEND_SECONDS = 600; // 1:50
   
   type Step = 0 | 1 | 2; // OTP → Create Password → Password Created
   
-  export default function VerifyOTP() {
+  export default function VerifyOTP({ email }: { email: string }) {
     const router = useRouter();
     const theme = useTheme();
     const [step, setStep] = useState<Step>(0);
-    const [otp, setOtp] = useState<string[]>(['', '', '', '']);
+    const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
     const [resendSecs, setResendSecs] = useState(RESEND_SECONDS);
     const [password, setPassword] = useState('');
-  
+    const [verifyResetOtp , { loading }] = Hooks.useVerifyResetOtpMutation();
+    const [resendOtp , { loading: resendOtpLoading }] = Hooks.useForgotPasswordMutation();
+    const [resetPassword , { loading: resetPasswordLoading }] = Hooks.useResetPasswordMutation();
     const [confirmPassword, setConfirmPassword] = useState('');
     const [passwordVisible, setPasswordVisible] = useState(false);
+    const [resetToken, setResetToken] = useState<string | null>(null);
     const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
     const otpRefs = useRef<(TextInput | null)[]>([]);
+    const params = useLocalSearchParams<{ email?: string }>();
 
     const showWarning = resendSecs > 0 && resendSecs < 60;
     // Resend OTP countdown
@@ -60,20 +67,87 @@ import {
       const s = secs % 60;
       return `${m}:${s.toString().padStart(2, '0')}s`;
     };
+
+  const emailParam = typeof params.email === 'string' ? params.email : Array.isArray(params.email) ? params.email[0] : '';
   
-    const handleVerify = () => {
+    const handleVerify = async () => {
       if (otpValue.length !== OTP_LENGTH) return;
-      setStep(1);
+      try{
+        const response = await verifyResetOtp({
+          variables: {
+            email: emailParam,
+            otp: otpValue,
+          },
+        });
+        console.log("response from verifying otp", response);
+        const token = response.data?.verifyResetOtp;
+        if(token){
+          setResetToken(token);
+        }
+        showMessage({
+          message: "OTP verified successfully",
+          type: "success",
+          duration: 4000,
+        });
+        setStep(1);
+      }
+      catch(err:any){
+        showMessage({
+          message: err.message,
+          type: "danger",
+          duration: 4000,
+        });
+      }
+      return;
     };
   
-    const handleResendOtp = () => {
+    const handleResendOtp = async () => {
       if (!canResend) return;
-      setResendSecs(RESEND_SECONDS);
-    };
+      try{
+        const response = await resendOtp({
+          variables: {
+            email: emailParam,
+          },
+        });
+        console.log("response from resending otp", response);
+        setResendSecs(RESEND_SECONDS);
+      }
+catch(err:any){
+showMessage({
+  message: err?.message, 
+  type: "danger", 
+  duration:4000
+})
+}
+      };
   
-    const handleCreatePassword = () => {
-      if (!password || password !== confirmPassword) return;
-      setStep(2);
+    const handleCreatePassword = async () => {
+      if (password.length <=0 || null || undefined) return;
+      try{
+        const response = await resetPassword({
+          variables: {
+            newPassword: password,
+            token: resetToken as any,
+          }
+        })
+        console.log("response from resetting password", response);
+        showMessage({
+          message: "Password reset successfully",
+          type: "success",
+          duration: 4000,
+        });
+        setStep(2);
+       
+      }
+      catch(err:any){
+        showMessage({
+          message: err?.message, 
+          type: "danger", 
+          duration:4000
+        });
+        return; 
+      }
+      
     };
   
     const handleLogin = () => {
@@ -85,9 +159,9 @@ import {
       return (
         <View style={[styles.container, { backgroundColor: theme.background }]}>
           <View style={[styles.header,]}>
-            <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
+            {/* <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
               <Ionicons name="chevron-back" size={24} color={theme.textPrimary} />
-            </Pressable>
+            </Pressable> */}
             <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Reset Password</Text>
             <View style={styles.backBtn} />
           </View>
@@ -136,16 +210,16 @@ import {
                     }}
                     placeholder=""
                   />
-                  <View style={[styles.otpBoxLine, { backgroundColor: theme.divider }]} />
+                  <View style={[{ backgroundColor: theme.divider }]} />
                 </View>
               ))}
             </View>
             <Button
               theme={theme}
-              label="Verify"
+              label={loading ? "Verifying..." : "Verify"}
               onPress={handleVerify}
               variant="primary"
-              disabled={otpValue.length !== OTP_LENGTH}
+              disabled={otpValue.length !== OTP_LENGTH || loading}
               style={[styles.verifyBtn, { backgroundColor: theme.accentFocus }]}
             />
             <View style={styles.resendWrap}>
@@ -196,7 +270,7 @@ import {
             <View style={styles.form}>
               <Input
                 theme={theme}
-                label="Password"
+                label="New Password"
                 placeholder="Create Password"
                 value={password}
                 onChangeText={setPassword}
@@ -212,27 +286,11 @@ import {
                   </Pressable>
                 }
               />
-              <Input
-                theme={theme}
-                label="Password"
-                placeholder="Create Password"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!confirmPasswordVisible}
-                leftIcon={<SvgXml xml={lock} />}
-                rightContent={
-                  <Pressable
-                    onPress={() => setConfirmPasswordVisible((v) => !v)}
-                    hitSlop={8}
-                    style={styles.inputAction}
-                  >
-                    <SvgXml xml={confirmPasswordVisible ? eyeOn : eyeOff} />
-                  </Pressable>
-                }
-              />
+             
               <Button
                 theme={theme}
-                label="Create Password"
+                label={resetPasswordLoading ? "Resetting Password..." : "Create Password"}
+                disabled={resetPasswordLoading || password.length <=0 }
                 onPress={handleCreatePassword}
                 variant="primary"
                 style={[styles.createPasswordBtn, { backgroundColor: theme.accent }]}
@@ -325,8 +383,8 @@ import {
       marginBottom: 24,
     },
     otpBoxWrap: {
-      width: 56,
-      height: 56,
+      width: 36,
+      height: 36,
       borderRadius: 12,
       borderWidth: 1,
       overflow: 'hidden',
@@ -420,6 +478,7 @@ import {
     },
     loginBtn: {
       width: '100%',
+      borderRadius:30,
     },
   });
   

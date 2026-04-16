@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Svg, Path, Circle } from 'react-native-svg';
+import { markDoctorOnboardingSeen } from '@/hooks/use-doctor-startup-route';
 import { useRouter } from 'expo-router';
 
 // Medical Cross Logo Component
@@ -37,7 +38,8 @@ const {width, height} = Dimensions.get("window");
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const handleNext = () => {
+  const handleNext = async () => {
+    await markDoctorOnboardingSeen();
     router.push('/signup');
   };
 

@@ -16,7 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SvgXml } from 'react-native-svg';
 import { envelope, eyeOff, eyeOn, facebook, google, lock } from '@/config/svg';
-import { Hooks, setLogInHandler } from '@repo/ui/graphql';
+import { Hooks, } from '@repo/ui/graphql';
 import { showMessage } from 'react-native-flash-message';
 
 const { height } = Dimensions.get('window');
@@ -64,7 +64,7 @@ export default function LoginScreen() {
           type: "success",
           duration: 4000,
         });
-        router.replace('/(auth)/verify-otp');
+        router.replace({pathname: '/(auth)/verify-otp', params: { email: trimmedEmail }});
       } catch (e:any) {
         // Network / HTTP failures (e.g. 404, 500) often land here
         // ApolloError: message, networkError, graphQLErrors
