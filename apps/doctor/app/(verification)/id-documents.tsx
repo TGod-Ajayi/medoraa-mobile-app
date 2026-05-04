@@ -7,10 +7,13 @@ import {
 } from '@/config/verification-id';
 import { useVerificationProgress } from '@/context/verification-progress';
 import { useTheme } from '@/config/theme';
+import { useApolloClient } from '@apollo/client/react';
+import { Types } from '@repo/ui/graphql';
 import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import { useCallback, useState } from 'react';
-import { Dimensions, Pressable, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { Dimensions, Image, Keyboard, Linking, Pressable, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, useColorScheme, View } from 'react-native';
+import { showMessage } from 'react-native-flash-message';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const verificationMethods = [
@@ -23,6 +26,7 @@ const { height } = Dimensions.get('window');
 export default function IdDocumentsScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const client = useApolloClient();
   const { markComplete } = useVerificationProgress();
   const [name, setName ] = useState<string>("");
   const [ninNumber, setNinNumber] = useState<number>();
@@ -32,7 +36,13 @@ export default function IdDocumentsScreen() {
   const [step, setStep] = useState<number>(1);
   const [address, setAddress] = useState<string>("");
   const [passportNumber, setPassportNumber] = useState<number | null>(null);
-  const [frontUpload, setFrontUpload] = useState<{ uri: string; name?: string } | null>(null);
+  const [frontUpload, setFrontUpload] = useState<{
+    uri: string;
+    name?: string;
+    key?: string;
+    mimeType?: string;
+  } | null>(null);
+  const [uploadingFront, setUploadingFront] = useState(false);
 
   const isDark = colorScheme === 'dark';
   const cardBg = isDark ? '#334155' : '#FFFFFF';
@@ -42,28 +52,209 @@ export default function IdDocumentsScreen() {
       ? verificationMethods.find((m) => m.id === selectedId)?.title
       : undefined;
 
+  const canPreviewAsImage = useCallback((file: { uri: string; name?: string; mimeType?: string }) => {
+    const normalizedMime = (file.mimeType ?? '').toLowerCase();
+    if (normalizedMime.startsWith('image/')) return true;
+    const lowerName = (file.name ?? '').toLowerCase();
+    return /\.(jpg|jpeg|png|webp|gif|heic)$/i.test(lowerName);
+  }, []);
+
+  const handleOpenUploadedDocument = useCallback(async () => {
+    if (!frontUpload?.uri) return;
+    const canOpen = await Linking.canOpenURL(frontUpload.uri);
+    if (!canOpen) {
+      showMessage({
+        message: 'Could not open uploaded document preview.',
+        type: 'danger',
+        duration: 4000,
+      });
+      return;
+    }
+    await Linking.openURL(frontUpload.uri);
+  }, [frontUpload]);
+
+  const renderUploadPreview = () => {
+    if (!frontUpload) return null;
+
+    return (
+      <View style={styles.previewWrap}>
+        {canPreviewAsImage(frontUpload) ? (
+          <Image source={{ uri: frontUpload.uri }} style={styles.previewImage} />
+        ) : (
+          <TouchableOpacity
+            onPress={handleOpenUploadedDocument}
+            style={[styles.previewFileCard, { backgroundColor: theme.background }]}
+          >
+            <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+              Tap to preview uploaded document
+            </Text>
+          </TouchableOpacity>
+        )}
+        <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+          Selected: {frontUpload.name ?? 'file'}
+        </Text>
+        <TouchableOpacity onPress={() => setFrontUpload(null)} style={styles.removeUploadButton}>
+          <Text style={styles.removeUploadText}>Remove document</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const uploadIdentificationDocument = useCallback(
+    async (uri: string, filename: string, mimeType: string, size?: number) => {
+      console.log('[ID Upload] Step 1: Initiating upload', {
+        filename,
+        mimeType,
+        size,
+        type: Types.FileTypeEnum.Identification,
+      });
+      const initResult = await client.mutate({
+        mutation: Types.InitiateUploadDocument,
+        variables: {
+          input: {
+            type: Types.FileTypeEnum.Identification,
+            filename,
+            size,
+          },
+        },
+      });
+
+      const presignedUrl = initResult.data?.initiateUpload?.presignedUrl;
+      const key = initResult.data?.initiateUpload?.key;
+      console.log('[ID Upload] Step 1 complete: initiateUpload response', {
+        hasPresignedUrl: Boolean(presignedUrl),
+        key,
+        expiresAt: initResult.data?.initiateUpload?.expiresAt,
+      });
+      if (!presignedUrl || !key) {
+        throw new Error('Unable to initiate file upload');
+      }
+
+      console.log('[ID Upload] Reading local file for PUT', { uri });
+      const fileRes = await fetch(uri);
+      if (!fileRes.ok) {
+        throw new Error('Unable to read selected file');
+      }
+      const body = await fileRes.blob();
+      const fileType = mimeType || body.type || 'application/octet-stream';
+      console.log('[ID Upload] Step 2: Uploading file to presigned URL', {
+        key,
+        fileType,
+        byteSize: body.size,
+      });
+
+      const putRes = await fetch(presignedUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': fileType,
+        },
+        body,
+      });
+
+      if (!putRes.ok) {
+        throw new Error(`Upload failed with status ${putRes.status}`);
+      }
+      console.log('[ID Upload] Step 2 complete: PUT upload successful', {
+        status: putRes.status,
+        key,
+      });
+
+      console.log('[ID Upload] Step 3: Confirming upload', { key });
+      const confirmResult = await client.mutate({
+        mutation: Types.ConfirmUploadDocument,
+        variables: { key },
+      });
+
+      const confirmed = confirmResult.data?.confirmUpload;
+      console.log('[ID Upload] Step 3 complete: confirmUpload response', confirmed);
+      if (!confirmed) {
+        throw new Error('Unable to confirm uploaded file');
+      }
+
+      console.log('[ID Upload] Step 4: Refetching user to verify file URL is live');
+      await client.refetchQueries({ include: [Types.GetUserDocument] });
+      console.log('[ID Upload] Step 4 complete: getUser refetched');
+
+      console.log('[ID Upload] Flow complete', { key: confirmed.key });
+      return { key: confirmed.key };
+    },
+    [client]
+  );
+
   const handlePickFront = useCallback(async () => {
+    if (uploadingFront) return;
     try {
+      console.log('[ID Upload] Opening document picker');
       const result = await DocumentPicker.getDocumentAsync({
         type: '*/*',
         multiple: false,
-        copyToCacheDirectory: false,
+        copyToCacheDirectory: true,
       });
 
-      if (result.canceled) return;
+      if (result.canceled) {
+        console.log('[ID Upload] Document picker canceled');
+        return;
+      }
 
       const asset = result.assets?.[0];
-      if (!asset?.uri) return;
+      if (!asset?.uri) {
+        console.log('[ID Upload] No picked document asset found');
+        return;
+      }
 
-      setFrontUpload({ uri: asset.uri, name: asset.name ?? undefined });
-    } catch {
-      // no-op: user cancelled or platform denied access
+      const mimeType = asset.mimeType ?? 'application/octet-stream';
+      const filename = asset.name ?? `document-${Date.now()}`;
+      console.log('[ID Upload] Picked document', {
+        uri: asset.uri,
+        filename,
+        mimeType,
+        size: asset.size ?? null,
+      });
+
+      setUploadingFront(true);
+      const uploaded = await uploadIdentificationDocument(
+        asset.uri,
+        filename,
+        mimeType,
+        asset.size ?? undefined
+      );
+
+      setFrontUpload({
+        uri: asset.uri,
+        name: filename,
+        key: uploaded.key,
+        mimeType,
+      });
+      console.log('[ID Upload] Stored uploaded document state', {
+        filename,
+        key: uploaded.key,
+      });
+      showMessage({
+        message: 'Document uploaded successfully',
+        type: 'success',
+        duration: 3000,
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Document upload failed';
+      console.log('[ID Upload] Upload flow failed', {
+        message,
+        error,
+      });
+      showMessage({
+        message,
+        type: 'danger',
+        duration: 5000,
+      });
+    } finally {
+      setUploadingFront(false);
+      console.log('[ID Upload] Uploading state reset');
     }
-  }, []);
+  }, [uploadIdentificationDocument, uploadingFront]);
 
   return (
     <>
       {step === 1 && (
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={[styles.root, { backgroundColor: theme.background }]}>
         <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
           <ScreenHeader theme={theme} title="ID Verification" />
@@ -132,9 +323,11 @@ export default function IdDocumentsScreen() {
           </View>
         </SafeAreaView>
       </View>
+      </TouchableWithoutFeedback>
       )}
 
       {step === 2 && selectedMethod != null && (
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={[styles.root, { backgroundColor: theme.background }]}>
           <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
             <ScreenHeader
@@ -178,14 +371,13 @@ export default function IdDocumentsScreen() {
               </View>
               <TouchableOpacity
                 onPress={handlePickFront}
+                disabled={uploadingFront}
                 style={{width: 329, height:48, borderRadius: 30, borderWidth: 1, borderColor: "#4CCBC6", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center"}}>
-                <Text style={{color: "#20BEB8", fontSize: 16, fontWeight: "500"}}>Upload Front</Text>
-              </TouchableOpacity>
-              {frontUpload ? (
-                <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-                  Selected: {frontUpload.name ?? 'file'}
+                <Text style={{color: "#20BEB8", fontSize: 16, fontWeight: "500"}}>
+                  {uploadingFront ? 'Uploading...' : 'Upload Front'}
                 </Text>
-              ) : null}
+              </TouchableOpacity>
+              {renderUploadPreview()}
              </View>
              </>
              )}
@@ -224,14 +416,13 @@ export default function IdDocumentsScreen() {
               </View>
               <TouchableOpacity
                 onPress={handlePickFront}
+                disabled={uploadingFront}
                 style={{width: 329, height:48, borderRadius: 30, borderWidth: 1, borderColor: "#4CCBC6", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center"}}>
-                <Text style={{color: "#20BEB8", fontSize: 16, fontWeight: "500"}}>Upload Front</Text>
-              </TouchableOpacity>
-              {frontUpload ? (
-                <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-                  Selected: {frontUpload.name ?? 'file'}
+                <Text style={{color: "#20BEB8", fontSize: 16, fontWeight: "500"}}>
+                  {uploadingFront ? 'Uploading...' : 'Upload Front'}
                 </Text>
-              ) : null}
+              </TouchableOpacity>
+              {renderUploadPreview()}
              </View>
              </>
              )}
@@ -271,14 +462,13 @@ export default function IdDocumentsScreen() {
               </View>
               <TouchableOpacity
                 onPress={handlePickFront}
+                disabled={uploadingFront}
                 style={{width: 329, height:48, borderRadius: 30, borderWidth: 1, borderColor: "#4CCBC6", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center"}}>
-                <Text style={{color: "#20BEB8", fontSize: 16, fontWeight: "500"}}>Upload Front</Text>
-              </TouchableOpacity>
-              {frontUpload ? (
-                <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-                  Selected: {frontUpload.name ?? 'file'}
+                <Text style={{color: "#20BEB8", fontSize: 16, fontWeight: "500"}}>
+                  {uploadingFront ? 'Uploading...' : 'Upload Front'}
                 </Text>
-              ) : null}
+              </TouchableOpacity>
+              {renderUploadPreview()}
              </View>
              </>
              )}
@@ -289,6 +479,7 @@ export default function IdDocumentsScreen() {
               <Button
                 theme={theme}
                 label="Continue"
+                disabled={!frontUpload?.key || uploadingFront}
                 onPress={() => {
                   void markComplete('id-documents');
                   router.push({
@@ -304,6 +495,7 @@ export default function IdDocumentsScreen() {
             </View>
           </SafeAreaView>
         </View>
+        </TouchableWithoutFeedback>
       )}
     </>
   );
@@ -369,6 +561,36 @@ const styles = StyleSheet.create({
   footer: {
     paddingTop: 16,
     paddingBottom: 8,
+  },
+  previewWrap: {
+    width: '100%',
+    gap: 8,
+  },
+  previewImage: {
+    width: '100%',
+    height: 140,
+    borderRadius: 10,
+  },
+  previewFileCard: {
+    width: '100%',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+  },
+  removeUploadButton: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  removeUploadText: {
+    color: '#EF4444',
+    fontSize: 13,
+    fontWeight: '500',
   },
   step2Block: {
     marginTop: 8,

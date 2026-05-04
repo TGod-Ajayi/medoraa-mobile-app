@@ -1,12 +1,14 @@
 mutation Login($loginInput: LoginInput!) {
   login(loginInput: $loginInput) {
     accessToken
+    refreshToken
   }
 }
 
 mutation SignUp($signUpInput: CreateUserInput!) {
   signUp(signUpInput: $signUpInput) {
     accessToken
+    refreshToken
   }
 }
 
@@ -24,4 +26,11 @@ mutation ChangePassword($newPassword: String!, $oldPassword: String!) {
 
 mutation VerifyResetOtp($email: String!, $otp: String!) {
   verifyResetOtp(email: $email, otp: $otp)
+}
+
+mutation RefreshAccessToken($refreshToken: String!) {
+  refreshAccessToken(refreshToken: $refreshToken) {
+    accessToken
+    refreshToken
+  }
 }

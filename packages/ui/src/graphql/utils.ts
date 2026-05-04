@@ -1,8 +1,36 @@
-import { deleteItemAsync, setItemAsync } from "expo-secure-store";
+import {
+  deleteItemAsync,
+  getItemAsync,
+  setItemAsync,
+} from "expo-secure-store";
 
-/** Persist access token before navigating away so cold start reads a stored value. */
+export const SECURE_STORE_ACCESS_KEY = "token";
+export const SECURE_STORE_REFRESH_KEY = "refreshToken";
+
+export const getStoredAccessToken = async (): Promise<string> => {
+  const token = await getItemAsync(SECURE_STORE_ACCESS_KEY);
+  return token ?? "";
+};
+
+export const getStoredRefreshToken = async (): Promise<string> => {
+  const token = await getItemAsync(SECURE_STORE_REFRESH_KEY);
+  return token ?? "";
+};
+
+/** Persist access + optional refresh token (rotation). */
+export const setSessionTokens = async (
+  accessToken: string,
+  refreshToken: string | null | undefined
+) => {
+  await setItemAsync(SECURE_STORE_ACCESS_KEY, accessToken);
+  if (refreshToken) {
+    await setItemAsync(SECURE_STORE_REFRESH_KEY, refreshToken);
+  }
+};
+
+/** Persist access token only (e.g. legacy callers). */
 export const setLogInHandler = async (token: string) => {
-  await setItemAsync("token", token);
+  await setItemAsync(SECURE_STORE_ACCESS_KEY, token);
 };
 
 /** function to get user auth details client side as hooks will cause race conditions */
@@ -48,6 +76,15 @@ export const isTokenExpired = (token?: string | null) => {
   }
 };
 
+async function safeDeleteKey(key: string) {
+  try {
+    await deleteItemAsync(key);
+  } catch {
+    /* key may be absent */
+  }
+}
+
 export const onUserSignOut = async () => {
-  await deleteItemAsync("token");
+  await safeDeleteKey(SECURE_STORE_ACCESS_KEY);
+  await safeDeleteKey(SECURE_STORE_REFRESH_KEY);
 };

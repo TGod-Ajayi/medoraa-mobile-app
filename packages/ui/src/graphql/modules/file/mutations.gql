@@ -1,0 +1,20 @@
+mutation InitiateUpload($input: InitiateUploadInput!) {
+  initiateUpload(input: $input) {
+    presignedUrl
+    key
+    expiresAt
+  }
+}
+
+mutation ConfirmUpload($key: String!) {
+  confirmUpload(key: $key) {
+    id
+    key
+    originalName
+    mimeType
+    size
+    type
+    status
+    createdAt
+  }
+}

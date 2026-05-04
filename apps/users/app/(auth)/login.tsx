@@ -15,7 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SvgXml } from 'react-native-svg';
 import { envelope, eyeOff, eyeOn, facebook, google, lock } from '@/config/svg';
-import { Hooks, setLogInHandler } from '@repo/ui/graphql';
+import { Hooks, setSessionTokens } from '@repo/ui/graphql';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -37,7 +37,7 @@ export default function LoginScreen() {
     });
     const token = data?.login?.accessToken;
     if (!token) return;
-    await setLogInHandler(token);
+    await setSessionTokens(token, data?.login?.refreshToken);
     router.replace('/(tabs)');
   };
 

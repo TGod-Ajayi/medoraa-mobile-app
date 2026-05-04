@@ -1,4 +1,4 @@
-import { isTokenExpired } from '@repo/ui/graphql';
+import { tryRestoreSessionWithRefresh } from '@repo/ui/graphql';
 import type { Href } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { useEffect, useState } from 'react';
@@ -42,10 +42,10 @@ export function useDoctorStartupRoute(): StartupState {
         console.log('[doctor-startup] onboarding seen flag:', onboardingSeen);
 
         let href: Href = '/(auth)/onboarding';
-        const expired = token ? isTokenExpired(token) : true;
-        console.log('[doctor-startup] token expired:', expired);
+        const sessionOk = await tryRestoreSessionWithRefresh();
+        console.log('[doctor-startup] session valid (access or refresh):', sessionOk);
 
-        if (token && !expired) {
+        if (sessionOk) {
           href = '/(tabs)';
         } else if (onboardingSeen === 'true') {
           href = '/(auth)/sign-in';

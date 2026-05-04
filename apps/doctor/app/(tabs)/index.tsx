@@ -9,6 +9,8 @@ import { useColorScheme } from '@repo/ui/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef } from 'react';
+
+
 import {
   Image,
   Pressable,
@@ -18,7 +20,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { appointmentTime, recordRecord } from '@/config/svg';
+import { appointmentTime, recordRecord, notifications } from '@/config/svg';
 
 import { SvgXml } from 'react-native-svg';
 const MOCK_DOCTOR_NAME = 'Dr Zenifer Aniston';
@@ -147,6 +149,7 @@ export default function HomeScreen() {
   const isDark = useColorScheme() === 'dark';
   const consultationSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ['45%'], []);
+  const colorScheme = useColorScheme();
 
   const tagColors = {
     orange: { bg: isDark ? 'rgba(251,146,60,0.2)' : '#FFEDD5', text: '#C2410C' },
@@ -196,9 +199,9 @@ export default function HomeScreen() {
               hitSlop={12}
               style={styles.bellWrap}
               accessibilityRole="button"
-              accessibilityLabel="Notifications">
-              <Ionicons name="notifications-outline" size={24} color={theme.textPrimary} />
-              <View style={styles.bellDot} />
+              accessibilityLabel="Notifications"
+              onPress={() => router.push('/notifications')}>
+              <SvgXml xml={notifications}/>
             </Pressable>
           </View>
 
@@ -211,7 +214,7 @@ export default function HomeScreen() {
                 <SvgXml xml={recordRecord}/>
               </View>
               <View style={styles.quickCardBody}>
-                <Text style={[styles.quickTitle, { color: theme.textPrimary }]}>Start Consultation</Text>
+                <Text style={[styles.quickTitle, { color: colorScheme === "dark" ? "#64748B" : "black" }]}>Start Consultation</Text>
                 <Text style={[styles.quickSub, { color: theme.textSecondary }]}>2 patients waiting</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
@@ -223,7 +226,7 @@ export default function HomeScreen() {
                 <SvgXml xml={appointmentTime} />
               </View>
               <View style={styles.quickCardBody}>
-                <Text style={[styles.quickTitle, { color: theme.textPrimary }]}>Appointments</Text>
+                <Text style={[styles.quickTitle, { color:colorScheme === "dark" ? "#64748B" : "black"}]}>Appointments</Text>
                 <Text style={[styles.quickSub, { color: theme.textSecondary }]}>8 upcoming today</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
@@ -397,7 +400,10 @@ const styles = StyleSheet.create({
   },
   bellWrap: {
     position: 'relative',
-    padding: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: 30,
+    backgroundColor : "white"
   },
   bellDot: {
     position: 'absolute',

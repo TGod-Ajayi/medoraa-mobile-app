@@ -1,5 +1,6 @@
 import { homeActive, homeInactive, patientActive, patientInactive, scheduleActive, scheduleInactive, activeRecord, inactiveRecord, doctorProfileActive, doctorProfileInactive} from '@/config/svg';
-import { HapticTab, IconSymbol } from '@repo/ui/components';
+import { useTheme } from '@/config/theme';
+import { HapticTab } from '@repo/ui/components';
 import { Colors } from '@repo/ui/constants';
 import { Tabs } from 'expo-router';
 import { useColorScheme } from 'react-native';
@@ -12,10 +13,13 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: (Colors as Record<string, typeof Colors.light>)[
-          colorScheme ?? 'light'
+          colorScheme === "dark" ? 'dark' :'light'
         ].tint,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarStyle: {
+          backgroundColor: useTheme().background,
+        },
       }}>
       <Tabs.Screen
         name="index"

@@ -16,7 +16,7 @@ import {
 import { SvgXml } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { envelope, eyeOff, eyeOn, lock } from '@/config/svg';
-import { Hooks, setLogInHandler, Types } from '@repo/ui/graphql';
+import { Hooks, setSessionTokens, Types } from '@repo/ui/graphql';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -58,7 +58,7 @@ export default function SignUpScreen() {
     });
     const token = data?.signUp?.accessToken;
     if (!token) return;
-    await setLogInHandler(token);
+    await setSessionTokens(token, data?.signUp?.refreshToken);
     router.replace('/(tabs)');
   };
 

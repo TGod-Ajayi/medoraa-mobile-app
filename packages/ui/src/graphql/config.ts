@@ -10,19 +10,10 @@ import { SetContextLink } from '@apollo/client/link/context';
 import { ErrorLink } from '@apollo/client/link/error';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition } from '@apollo/client/utilities';
-import { getItemAsync } from 'expo-secure-store';
 import { createClient } from 'graphql-ws';
 import { showMessage } from 'react-native-flash-message';
-
-// import errorToast from "./error-toast";
-
-const getToken = async () => {
-  const token = await getItemAsync('token');
-  if (token) {
-    return token;
-  }
-  return '';
-};
+import { ensureFreshAccessToken } from './refresh-session';
+import { getStoredAccessToken } from './utils';
 
 const errorLink = new ErrorLink(({ error }) => {
   if (CombinedGraphQLErrors.is(error)) {
@@ -31,7 +22,6 @@ const errorLink = new ErrorLink(({ error }) => {
         `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`
       );
       if (typeof window !== 'undefined') {
-        // errorToast(message, extensions);
         showMessage({
           message,
           type: 'danger',
@@ -52,13 +42,19 @@ const errorLink = new ErrorLink(({ error }) => {
   }
 });
 
-const authLink = new SetContextLink(async (prevContext) => {
-  const token = await getToken();
+const preAuthRefreshLink = new SetContextLink(async () => {
+  await ensureFreshAccessToken();
+  return {};
+});
 
+const authLink = new SetContextLink(async (prevContext, operation) => {
+  const token = await getStoredAccessToken();
+  const skipBearer = operation.operationName === 'RefreshAccessToken';
   return {
     headers: {
       ...prevContext.headers,
-      authorization: token ? `Bearer ${token}` : '',
+      authorization:
+        skipBearer || !token ? '' : `Bearer ${token}`,
     },
   };
 });
@@ -70,9 +66,10 @@ const gqlClientConnect = () => {
     createClient({
       url: process.env.EXPO_PUBLIC_WGQL ?? '',
       connectionParams: async () => {
-        const token = await getToken();
+        await ensureFreshAccessToken();
+        const token = await getStoredAccessToken();
         return {
-          authorization: `Bearer ${token}`,
+          authorization: token ? `Bearer ${token}` : '',
         };
       },
     })
@@ -81,9 +78,6 @@ const gqlClientConnect = () => {
   const httpLink = new HttpLink({
     uri: process.env.EXPO_PUBLIC_GQL,
     useGETForQueries: true,
-    // headers: {
-    //   authorization: `Bearer ${token}`,
-    // },
   });
 
   const splitLink = ApolloLink.split(
@@ -101,15 +95,13 @@ const gqlClientConnect = () => {
   const apolloClient: ApolloClient = new ApolloClient({
     ssrMode: typeof window === 'undefined',
     cache,
-    link: ApolloLink.from([errorLink, authLink, splitLink]),
+    link: ApolloLink.from([
+      errorLink,
+      preAuthRefreshLink,
+      authLink,
+      splitLink,
+    ]),
     defaultOptions: {
-      // watchQuery: {
-      //   fetchPolicy: 'no-cache',
-      //   nextFetchPolicy: 'no-cache',
-      // },
-      // query: {
-      //   fetchPolicy: 'no-cache',
-      // },
       mutate: {
         fetchPolicy: 'no-cache',
       },

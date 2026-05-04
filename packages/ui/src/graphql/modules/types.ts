@@ -61,18 +61,6 @@ export type CreateDoctorSpecialtyInput = {
   specialtyId: Scalars['String']['input'];
 };
 
-export type CreateFileInput = {
-  key: Scalars['String']['input'];
-  size?: InputMaybe<Scalars['Float']['input']>;
-  type: FileTypeEnum;
-};
-
-export type CreateFileOutput = {
-  __typename?: 'CreateFileOutput';
-  key: Scalars['String']['output'];
-  url: Scalars['String']['output'];
-};
-
 export type CreatePatientEncounterInput = {
   /** Example field (placeholder) */
   exampleField: Scalars['Int']['input'];
@@ -169,18 +157,28 @@ export type DoctorSpecialty = {
 export type FileEntity = {
   __typename?: 'FileEntity';
   createdAt: Scalars['DateTime']['output'];
-  createdBy?: Maybe<User>;
   id: Scalars['ID']['output'];
+  key: Scalars['String']['output'];
   mimeType: Scalars['String']['output'];
-  size: Scalars['Float']['output'];
+  originalName?: Maybe<Scalars['String']['output']>;
+  size?: Maybe<Scalars['Int']['output']>;
+  status: FileStatusEnum;
   type: FileTypeEnum;
   updatedAt: Scalars['DateTime']['output'];
 };
 
-/** The type of file, ex: profile picture, medical license */
+/** Upload lifecycle status — PENDING until the client confirms the upload */
+export enum FileStatusEnum {
+  Confirmed = 'CONFIRMED',
+  Pending = 'PENDING'
+}
+
+/** The category of file being stored */
 export enum FileTypeEnum {
+  Identification = 'IDENTIFICATION',
   MedicalCertificate = 'MEDICAL_CERTIFICATE',
   MedicalLicense = 'MEDICAL_LICENSE',
+  MedicalRecord = 'MEDICAL_RECORD',
   ProfilePicture = 'PROFILE_PICTURE'
 }
 
@@ -189,6 +187,22 @@ export enum GenderTypes {
   Female = 'FEMALE',
   Male = 'MALE'
 }
+
+export type InitiateUploadInput = {
+  filename: Scalars['String']['input'];
+  size?: InputMaybe<Scalars['Int']['input']>;
+  type: FileTypeEnum;
+};
+
+export type InitiateUploadOutput = {
+  __typename?: 'InitiateUploadOutput';
+  /** UTC timestamp when the pre-signed URL expires. */
+  expiresAt: Scalars['DateTime']['output'];
+  /** Storage key — pass to confirmUpload after the PUT succeeds. */
+  key: Scalars['String']['output'];
+  /** Pre-signed PUT URL. Upload via HTTP PUT with raw file bytes. */
+  presignedUrl: Scalars['String']['output'];
+};
 
 export type LoginInput = {
   email: Scalars['String']['input'];
@@ -199,6 +213,8 @@ export type LoginOutput = {
   __typename?: 'LoginOutput';
   /** JWT access token */
   accessToken: Scalars['String']['output'];
+  /** JWT refresh token — long-lived, use to obtain a new access token */
+  refreshToken: Scalars['String']['output'];
 };
 
 /** The Type of login a user can have */
@@ -210,18 +226,21 @@ export enum LoginTypes {
 export type Mutation = {
   __typename?: 'Mutation';
   changePassword: Scalars['String']['output'];
+  /** Step 2: confirm a completed upload and activate the file record. */
+  confirmUpload: FileEntity;
   createAppointment: Appointment;
   createDoctorAvailability: DoctorAvailability;
-  createFile: CreateFileOutput;
   createPatient: Patient;
   createPatientEncounter: PatientEncounter;
   createPrescription: Prescription;
   forgotPassword: Scalars['String']['output'];
+  /** Step 1: obtain a pre-signed PUT URL to upload a file directly to storage. */
+  initiateUpload: InitiateUploadOutput;
   login: LoginOutput;
+  refreshAccessToken: LoginOutput;
   removeAppointment: Appointment;
   removeDoctor: Doctor;
   removeDoctorAvailability: Scalars['String']['output'];
-  removeFile: FileEntity;
   removePatient: Patient;
   removePatientEncounter: PatientEncounter;
   removePrescription: Prescription;
@@ -231,7 +250,6 @@ export type Mutation = {
   updateAppointment: Appointment;
   updateDoctor: Doctor;
   updateDoctorAvailability: DoctorAvailability;
-  updateFile: FileEntity;
   updatePatient: Patient;
   updatePatientEncounter: PatientEncounter;
   updatePrescription: Prescription;
@@ -246,6 +264,11 @@ export type MutationChangePasswordArgs = {
 };
 
 
+export type MutationConfirmUploadArgs = {
+  key: Scalars['String']['input'];
+};
+
+
 export type MutationCreateAppointmentArgs = {
   createAppointmentInput: CreateAppointmentInput;
 };
@@ -253,11 +276,6 @@ export type MutationCreateAppointmentArgs = {
 
 export type MutationCreateDoctorAvailabilityArgs = {
   createDoctorAvailabilityInput: CreateDoctorAvailabilityInput;
-};
-
-
-export type MutationCreateFileArgs = {
-  createFileInput: CreateFileInput;
 };
 
 
@@ -281,8 +299,18 @@ export type MutationForgotPasswordArgs = {
 };
 
 
+export type MutationInitiateUploadArgs = {
+  input: InitiateUploadInput;
+};
+
+
 export type MutationLoginArgs = {
   loginInput: LoginInput;
+};
+
+
+export type MutationRefreshAccessTokenArgs = {
+  refreshToken: Scalars['String']['input'];
 };
 
 
@@ -298,11 +326,6 @@ export type MutationRemoveDoctorArgs = {
 
 export type MutationRemoveDoctorAvailabilityArgs = {
   id: Scalars['ID']['input'];
-};
-
-
-export type MutationRemoveFileArgs = {
-  id: Scalars['Int']['input'];
 };
 
 
@@ -352,11 +375,6 @@ export type MutationUpdateDoctorAvailabilityArgs = {
 };
 
 
-export type MutationUpdateFileArgs = {
-  updateFileInput: UpdateFileInput;
-};
-
-
 export type MutationUpdatePatientArgs = {
   updatePatientInput: UpdatePatientInput;
 };
@@ -389,6 +407,11 @@ export type OffsetPageInfo = {
   itemsPerPage: Scalars['Float']['output'];
   totalItems: Scalars['Float']['output'];
   totalPages: Scalars['Float']['output'];
+};
+
+export type OffsetPaginationArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  page?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type Patient = {
@@ -433,7 +456,6 @@ export type Query = {
   __typename?: 'Query';
   appointment: Appointment;
   appointments: Array<Appointment>;
-  file: Array<FileEntity>;
   getCommonSymptom: CommonSymptom;
   getCommonSymptoms: Array<CommonSymptom>;
   getDoctor: Doctor;
@@ -444,6 +466,8 @@ export type Query = {
   getSpecialty: Specialty;
   getUser: User;
   getViewUrl: Scalars['String']['output'];
+  /** List all confirmed medical record files for the authenticated user. */
+  myMedicalRecords: Array<FileEntity>;
   patient: Patient;
   patientEncounter: PatientEncounter;
   patientEncounters: Array<PatientEncounter>;
@@ -475,8 +499,7 @@ export type QueryGetDoctorDetailsArgs = {
 
 export type QueryGetDoctorsArgs = {
   filter?: InputMaybe<DoctorFilterInput>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  page?: InputMaybe<Scalars['Int']['input']>;
+  paginationArgs: OffsetPaginationArgs;
 };
 
 
@@ -544,13 +567,6 @@ export type UpdateDoctorInput = {
   medicalSchool?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type UpdateFileInput = {
-  id: Scalars['ID']['input'];
-  key?: InputMaybe<Scalars['String']['input']>;
-  size?: InputMaybe<Scalars['Float']['input']>;
-  type?: InputMaybe<FileTypeEnum>;
-};
-
 export type UpdatePatientEncounterInput = {
   /** Example field (placeholder) */
   exampleField?: InputMaybe<Scalars['Int']['input']>;
@@ -605,14 +621,14 @@ export type LoginMutationVariables = Exact<{
 }>;
 
 
-export type LoginMutation = { __typename?: 'Mutation', login: { __typename?: 'LoginOutput', accessToken: string } };
+export type LoginMutation = { __typename?: 'Mutation', login: { __typename?: 'LoginOutput', accessToken: string, refreshToken: string } };
 
 export type SignUpMutationVariables = Exact<{
   signUpInput: CreateUserInput;
 }>;
 
 
-export type SignUpMutation = { __typename?: 'Mutation', signUp: { __typename?: 'LoginOutput', accessToken: string } };
+export type SignUpMutation = { __typename?: 'Mutation', signUp: { __typename?: 'LoginOutput', accessToken: string, refreshToken: string } };
 
 export type ForgotPasswordMutationVariables = Exact<{
   email: Scalars['String']['input'];
@@ -645,6 +661,13 @@ export type VerifyResetOtpMutationVariables = Exact<{
 
 export type VerifyResetOtpMutation = { __typename?: 'Mutation', verifyResetOtp: string };
 
+export type RefreshAccessTokenMutationVariables = Exact<{
+  refreshToken: Scalars['String']['input'];
+}>;
+
+
+export type RefreshAccessTokenMutation = { __typename?: 'Mutation', refreshAccessToken: { __typename?: 'LoginOutput', accessToken: string, refreshToken: string } };
+
 export type UpdateDoctorMutationVariables = Exact<{
   updateDoctorInput: UpdateDoctorInput;
 }>;
@@ -669,6 +692,20 @@ export type GetSpecialtiesQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type GetSpecialtiesQuery = { __typename?: 'Query', getSpecialties: Array<{ __typename?: 'Specialty', code: string, createdAt: any, description?: string | null, doctorName: string, id: string, imageUrl?: string | null, name: string, updatedAt: any }> };
 
+export type InitiateUploadMutationVariables = Exact<{
+  input: InitiateUploadInput;
+}>;
+
+
+export type InitiateUploadMutation = { __typename?: 'Mutation', initiateUpload: { __typename?: 'InitiateUploadOutput', presignedUrl: string, key: string, expiresAt: any } };
+
+export type ConfirmUploadMutationVariables = Exact<{
+  key: Scalars['String']['input'];
+}>;
+
+
+export type ConfirmUploadMutation = { __typename?: 'Mutation', confirmUpload: { __typename?: 'FileEntity', id: string, key: string, originalName?: string | null, mimeType: string, size?: number | null, type: FileTypeEnum, status: FileStatusEnum, createdAt: any } };
+
 export type UpdateUserMutationVariables = Exact<{
   updateUserInput: UpdateUserInput;
 }>;
@@ -682,15 +719,18 @@ export type GetUserQueryVariables = Exact<{ [key: string]: never; }>;
 export type GetUserQuery = { __typename?: 'Query', getUser: { __typename?: 'User', id: string, firstName: string, lastName: string, email: string, dateOfBirth?: any | null, gender?: GenderTypes | null, loginType: LoginTypes, phoneNumber?: string | null, profilePhoto?: string | null, role: UserRoles, createdAt: any, updatedAt: any } };
 
 
-export const LoginDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"Login"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"loginInput"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"LoginInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"login"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"loginInput"},"value":{"kind":"Variable","name":{"kind":"Name","value":"loginInput"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"accessToken"}}]}}]}}]} as unknown as DocumentNode<LoginMutation, LoginMutationVariables>;
-export const SignUpDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"SignUp"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"signUpInput"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateUserInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"signUp"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"signUpInput"},"value":{"kind":"Variable","name":{"kind":"Name","value":"signUpInput"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"accessToken"}}]}}]}}]} as unknown as DocumentNode<SignUpMutation, SignUpMutationVariables>;
+export const LoginDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"Login"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"loginInput"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"LoginInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"login"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"loginInput"},"value":{"kind":"Variable","name":{"kind":"Name","value":"loginInput"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"accessToken"}},{"kind":"Field","name":{"kind":"Name","value":"refreshToken"}}]}}]}}]} as unknown as DocumentNode<LoginMutation, LoginMutationVariables>;
+export const SignUpDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"SignUp"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"signUpInput"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateUserInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"signUp"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"signUpInput"},"value":{"kind":"Variable","name":{"kind":"Name","value":"signUpInput"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"accessToken"}},{"kind":"Field","name":{"kind":"Name","value":"refreshToken"}}]}}]}}]} as unknown as DocumentNode<SignUpMutation, SignUpMutationVariables>;
 export const ForgotPasswordDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"ForgotPassword"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"email"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"forgotPassword"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"email"},"value":{"kind":"Variable","name":{"kind":"Name","value":"email"}}}]}]}}]} as unknown as DocumentNode<ForgotPasswordMutation, ForgotPasswordMutationVariables>;
 export const ResetPasswordDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"ResetPassword"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"newPassword"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"token"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"resetPassword"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"newPassword"},"value":{"kind":"Variable","name":{"kind":"Name","value":"newPassword"}}},{"kind":"Argument","name":{"kind":"Name","value":"token"},"value":{"kind":"Variable","name":{"kind":"Name","value":"token"}}}]}]}}]} as unknown as DocumentNode<ResetPasswordMutation, ResetPasswordMutationVariables>;
 export const ChangePasswordDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"ChangePassword"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"newPassword"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"oldPassword"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"changePassword"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"newPassword"},"value":{"kind":"Variable","name":{"kind":"Name","value":"newPassword"}}},{"kind":"Argument","name":{"kind":"Name","value":"oldPassword"},"value":{"kind":"Variable","name":{"kind":"Name","value":"oldPassword"}}}]}]}}]} as unknown as DocumentNode<ChangePasswordMutation, ChangePasswordMutationVariables>;
 export const VerifyResetOtpDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"VerifyResetOtp"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"email"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"otp"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"verifyResetOtp"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"email"},"value":{"kind":"Variable","name":{"kind":"Name","value":"email"}}},{"kind":"Argument","name":{"kind":"Name","value":"otp"},"value":{"kind":"Variable","name":{"kind":"Name","value":"otp"}}}]}]}}]} as unknown as DocumentNode<VerifyResetOtpMutation, VerifyResetOtpMutationVariables>;
+export const RefreshAccessTokenDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"RefreshAccessToken"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"refreshToken"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"refreshAccessToken"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"refreshToken"},"value":{"kind":"Variable","name":{"kind":"Name","value":"refreshToken"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"accessToken"}},{"kind":"Field","name":{"kind":"Name","value":"refreshToken"}}]}}]}}]} as unknown as DocumentNode<RefreshAccessTokenMutation, RefreshAccessTokenMutationVariables>;
 export const UpdateDoctorDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpdateDoctor"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"updateDoctorInput"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UpdateDoctorInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"updateDoctor"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"updateDoctorInput"},"value":{"kind":"Variable","name":{"kind":"Name","value":"updateDoctorInput"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]} as unknown as DocumentNode<UpdateDoctorMutation, UpdateDoctorMutationVariables>;
 export const GetDoctorDetailsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetDoctorDetails"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"doctorId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"getDoctorDetails"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"doctorId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"doctorId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"clinicAddress"}},{"kind":"Field","name":{"kind":"Name","value":"clinicName"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"doctorsSpecialties"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"specialty"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"code"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"doctorName"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}},{"kind":"Field","name":{"kind":"Name","value":"graduationYear"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"identificationFile"}},{"kind":"Field","name":{"kind":"Name","value":"identificationNumber"}},{"kind":"Field","name":{"kind":"Name","value":"identificationType"}},{"kind":"Field","name":{"kind":"Name","value":"level"}},{"kind":"Field","name":{"kind":"Name","value":"medicalCertificateFile"}},{"kind":"Field","name":{"kind":"Name","value":"medicalLicenseFile"}},{"kind":"Field","name":{"kind":"Name","value":"medicalSchool"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<GetDoctorDetailsQuery, GetDoctorDetailsQueryVariables>;
 export const GetDoctorDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetDoctor"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"getDoctor"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"clinicAddress"}},{"kind":"Field","name":{"kind":"Name","value":"clinicName"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"doctorsSpecialties"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"specialty"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"code"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"doctorName"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}},{"kind":"Field","name":{"kind":"Name","value":"graduationYear"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"identificationFile"}},{"kind":"Field","name":{"kind":"Name","value":"identificationNumber"}},{"kind":"Field","name":{"kind":"Name","value":"identificationType"}},{"kind":"Field","name":{"kind":"Name","value":"level"}},{"kind":"Field","name":{"kind":"Name","value":"medicalCertificateFile"}},{"kind":"Field","name":{"kind":"Name","value":"medicalLicenseFile"}},{"kind":"Field","name":{"kind":"Name","value":"medicalSchool"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<GetDoctorQuery, GetDoctorQueryVariables>;
 export const GetSpecialtiesDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetSpecialties"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"getSpecialties"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"code"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"doctorName"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<GetSpecialtiesQuery, GetSpecialtiesQueryVariables>;
+export const InitiateUploadDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"InitiateUpload"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"InitiateUploadInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"initiateUpload"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"presignedUrl"}},{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"expiresAt"}}]}}]}}]} as unknown as DocumentNode<InitiateUploadMutation, InitiateUploadMutationVariables>;
+export const ConfirmUploadDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"ConfirmUpload"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"key"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"confirmUpload"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"key"},"value":{"kind":"Variable","name":{"kind":"Name","value":"key"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"originalName"}},{"kind":"Field","name":{"kind":"Name","value":"mimeType"}},{"kind":"Field","name":{"kind":"Name","value":"size"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]} as unknown as DocumentNode<ConfirmUploadMutation, ConfirmUploadMutationVariables>;
 export const UpdateUserDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpdateUser"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"updateUserInput"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UpdateUserInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"updateUser"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"updateUserInput"},"value":{"kind":"Variable","name":{"kind":"Name","value":"updateUserInput"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]} as unknown as DocumentNode<UpdateUserMutation, UpdateUserMutationVariables>;
 export const GetUserDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetUser"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"getUser"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"dateOfBirth"}},{"kind":"Field","name":{"kind":"Name","value":"gender"}},{"kind":"Field","name":{"kind":"Name","value":"loginType"}},{"kind":"Field","name":{"kind":"Name","value":"phoneNumber"}},{"kind":"Field","name":{"kind":"Name","value":"profilePhoto"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<GetUserQuery, GetUserQueryVariables>;

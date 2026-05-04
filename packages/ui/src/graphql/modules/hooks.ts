@@ -30,6 +30,10 @@ export function useVerifyResetOtpMutation(baseOptions?: Apollo.useMutation.Optio
 export type VerifyResetOtpMutationHookResult = ReturnType<typeof useVerifyResetOtpMutation>;
 export type VerifyResetOtpMutationResult = Apollo.useMutation.Result<Graphql.VerifyResetOtpMutation>;
 
+export function useRefreshAccessTokenMutation(baseOptions?: Apollo.useMutation.Options<Graphql.RefreshAccessTokenMutation, Graphql.RefreshAccessTokenMutationVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useMutation<Graphql.RefreshAccessTokenMutation, Graphql.RefreshAccessTokenMutationVariables>(Graphql.RefreshAccessTokenDocument, options);};
+export type RefreshAccessTokenMutationHookResult = ReturnType<typeof useRefreshAccessTokenMutation>;
+export type RefreshAccessTokenMutationResult = Apollo.useMutation.Result<Graphql.RefreshAccessTokenMutation>;
+
 export function useUpdateDoctorMutation(baseOptions?: Apollo.useMutation.Options<Graphql.UpdateDoctorMutation, Graphql.UpdateDoctorMutationVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useMutation<Graphql.UpdateDoctorMutation, Graphql.UpdateDoctorMutationVariables>(Graphql.UpdateDoctorDocument, options);};
 export type UpdateDoctorMutationHookResult = ReturnType<typeof useUpdateDoctorMutation>;
 export type UpdateDoctorMutationResult = Apollo.useMutation.Result<Graphql.UpdateDoctorMutation>;
@@ -63,6 +67,14 @@ export type GetSpecialtiesLazyQueryHookResult = ReturnType<typeof useGetSpecialt
 
 export function useGetSpecialtiesSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetSpecialtiesQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetSpecialtiesQuery, Graphql.GetSpecialtiesQueryVariables>(Graphql.GetSpecialtiesDocument, options);};
 export type GetSpecialtiesSuspenseQueryHookResult = ReturnType<typeof useGetSpecialtiesSuspenseQuery>;
+
+export function useInitiateUploadMutation(baseOptions?: Apollo.useMutation.Options<Graphql.InitiateUploadMutation, Graphql.InitiateUploadMutationVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useMutation<Graphql.InitiateUploadMutation, Graphql.InitiateUploadMutationVariables>(Graphql.InitiateUploadDocument, options);};
+export type InitiateUploadMutationHookResult = ReturnType<typeof useInitiateUploadMutation>;
+export type InitiateUploadMutationResult = Apollo.useMutation.Result<Graphql.InitiateUploadMutation>;
+
+export function useConfirmUploadMutation(baseOptions?: Apollo.useMutation.Options<Graphql.ConfirmUploadMutation, Graphql.ConfirmUploadMutationVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useMutation<Graphql.ConfirmUploadMutation, Graphql.ConfirmUploadMutationVariables>(Graphql.ConfirmUploadDocument, options);};
+export type ConfirmUploadMutationHookResult = ReturnType<typeof useConfirmUploadMutation>;
+export type ConfirmUploadMutationResult = Apollo.useMutation.Result<Graphql.ConfirmUploadMutation>;
 
 export function useUpdateUserMutation(baseOptions?: Apollo.useMutation.Options<Graphql.UpdateUserMutation, Graphql.UpdateUserMutationVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useMutation<Graphql.UpdateUserMutation, Graphql.UpdateUserMutationVariables>(Graphql.UpdateUserDocument, options);};
 export type UpdateUserMutationHookResult = ReturnType<typeof useUpdateUserMutation>;

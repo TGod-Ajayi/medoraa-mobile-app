@@ -18,7 +18,7 @@ import { SvgXml } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { envelope, eyeOff, eyeOn, lock, profile } from '../../config/svg';
 import { showMessage } from 'react-native-flash-message';
-import { Hooks, setLogInHandler, Types } from '@repo/ui/graphql';
+import { Hooks, setSessionTokens, Types } from '@repo/ui/graphql';
 
 const MONTHS = [
   'January',
@@ -37,6 +37,20 @@ const MONTHS = [
 
 function formatDate(d: Date) {
   return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/** Age in whole years at today's calendar date (birthday must have occurred). */
+function isAtLeast18YearsOld(birthDate: Date): boolean {
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birthDate.getDate())
+  ) {
+    age -= 1;
+  }
+  return age >= 18;
 }
 
 const { height, width } = Dimensions.get('window');
@@ -80,7 +94,7 @@ export default function SignUpScreen() {
   const passwordLooksInvalid = trimmedPassword.length < 0 ;
 
   const trimmedDob = dob.toISOString();
-  const dobLooksInvalid = trimmedDob.length < 0 ;
+  const dobLooksInvalid = trimmedDob.length < 0;
 
   const handleSignUp = async () => {
     if (
@@ -92,6 +106,15 @@ export default function SignUpScreen() {
     ) {
       showMessage({
         message: 'Please fill all the fields',
+        type: 'danger',
+        duration: 4000,
+      });
+      return;
+    }
+
+    if (!isAtLeast18YearsOld(dob)) {
+      showMessage({
+        message: 'you should be at least 18yrs to continue ',
         type: 'danger',
         duration: 4000,
       });
@@ -113,7 +136,7 @@ export default function SignUpScreen() {
       });
       const token = data?.signUp?.accessToken;
       if (!token) return;
-      await setLogInHandler(token);
+      await setSessionTokens(token, data?.signUp?.refreshToken);
       showMessage({
         message: 'Sign up successful',
         type: 'success',
@@ -262,7 +285,14 @@ export default function SignUpScreen() {
             label={loading ? 'Signing up…' : 'Sign up'}
             onPress={handleSignUp}
             variant='primary'
-            disabled={loading || firstNameLooksInvalid || lastNameLooksInvalid || emailLooksInvalid || passwordLooksInvalid || dobLooksInvalid}
+            disabled={
+              loading ||
+              firstNameLooksInvalid ||
+              lastNameLooksInvalid ||
+              emailLooksInvalid ||
+              passwordLooksInvalid ||
+              dobLooksInvalid
+            }
             style={[
               styles.signUpButton,
               { backgroundColor: theme.accent, borderRadius: 30 },
@@ -319,7 +349,17 @@ export default function SignUpScreen() {
       <DatePickerBottomSheet
         visible={dobSheetOpen}
         selected={dob}
-        onConfirm={(date) => setDob(date)}
+        onConfirm={(date) => {
+          if (!isAtLeast18YearsOld(date)) {
+            showMessage({
+              message: 'you should be at least 18yrs to continue ',
+              type: 'danger',
+              duration: 4000,
+            });
+            return;
+          }
+          setDob(date);
+        }}
         onClose={() => setDobSheetOpen(false)}
       />
     </KeyboardAvoidingView>

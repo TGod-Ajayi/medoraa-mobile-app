@@ -1,8 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import { onUserSignOut } from '@repo/ui/graphql';
 import { useRouter } from 'expo-router';
 import type { ComponentProps } from 'react';
+import { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showMessage } from 'react-native-flash-message';
 
 import { ProfileMenuItem } from '../../components/profile';
 import { ScreenHeader } from '../../components/doctor';
@@ -29,6 +32,24 @@ const MENU: { id: string; label: string; icon: IonName }[] =
 export default function ProfileScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await onUserSignOut();
+      router.replace('/(auth)/login');
+    } catch {
+      showMessage({
+        message: 'Could not sign out. Try again.',
+        type: 'danger',
+        duration: 4000,
+      });
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={['top']}>
@@ -89,6 +110,23 @@ export default function ProfileScreen() {
             />
           ))}
         </View>
+
+        <Pressable
+          onPress={handleLogout}
+          disabled={loggingOut}
+          style={({ pressed }) => [
+            styles.logoutBtn,
+            {
+              borderColor: theme.error,
+              opacity: pressed || loggingOut ? 0.7 : 1,
+            },
+          ]}
+          accessibilityRole='button'
+          accessibilityLabel='Log out'>
+          <Text style={[styles.logoutLabel, { color: theme.error, fontFamily: fonts.semiBold }]}>
+            {loggingOut ? 'Signing out…' : 'Log out'}
+          </Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -154,5 +192,16 @@ const styles = StyleSheet.create({
   },
   menu: {
     paddingTop: 4,
+  },
+  logoutBtn: {
+    marginTop: 28,
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutLabel: {
+    fontSize: 16,
   },
 });
