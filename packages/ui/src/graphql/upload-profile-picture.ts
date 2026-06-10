@@ -17,18 +17,38 @@ export type ProfilePictureUploadParams = {
   filename: string;
 };
 
+/** Builds React Native `FormData` for a picked profile image. */
+export function createProfilePictureFormData(
+  params: ProfilePictureUploadParams
+): FormData {
+  const formData = new FormData();
+  formData.append(
+    'file',
+    {
+      uri: params.uri,
+      type: params.mimeType,
+      name: params.filename,
+    } as unknown as Blob
+  );
+  return formData;
+}
+
 /**
  * Presigned S3-style upload pipeline:
- * 1. Read local file as a `Blob` (size used for `initiateUpload`).
- * 2. `initiateUpload` → presigned PUT URL + storage `key`
- * 3. HTTP PUT same `Blob` bytes to `presignedUrl` (not GraphQL)
- * 4. `confirmUpload(key)` → activates `FileEntity` and links profile picture for the current user
- * 5. Refetches `getUser` so `profilePhoto` returns a fresh GET URL
+ * 1. Package picked image in `FormData` (RN file reference)
+ * 2. Read local file as a `Blob` (size used for `initiateUpload`)
+ * 3. `initiateUpload` → presigned PUT URL + storage `key`
+ * 4. HTTP PUT same `Blob` bytes to `presignedUrl` (not GraphQL)
+ * 5. `confirmUpload(key)` → activates `FileEntity` and links profile picture for the current user
+ * 6. Refetches `getUser` so `profilePhoto` returns a fresh GET URL
  */
 export async function uploadProfilePicture(
   client: ApolloClient,
   params: ProfilePictureUploadParams
 ): Promise<ConfirmUploadMutation['confirmUpload']> {
+  const formData = createProfilePictureFormData(params);
+  void formData;
+
   const readRes = await fetch(params.uri);
   if (!readRes.ok) {
     throw new Error('Could not read the selected image from disk');

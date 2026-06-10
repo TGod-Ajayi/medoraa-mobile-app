@@ -33,6 +33,7 @@ export default function RootLayout() {
                 <Stack.Screen name="(verification)" />
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="notifications" />
+                <Stack.Screen name="appointments" />
               </Stack>
               <StatusBar style="auto" />
             </ThemeProvider>

@@ -3,3 +3,22 @@ mutation UpdateDoctor($updateDoctorInput: UpdateDoctorInput!) {
     id
   }
 }
+
+mutation CreateDoctorAvailability(
+  $createDoctorAvailabilityInput: CreateDoctorAvailabilityInput!
+) {
+  createDoctorAvailability(createDoctorAvailabilityInput: $createDoctorAvailabilityInput) {
+    id
+    dayOfWeek
+    startTime
+    endTime
+    timezone
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+mutation RemoveDoctorAvailability($id: ID!) {
+  removeDoctorAvailability(id: $id)
+}

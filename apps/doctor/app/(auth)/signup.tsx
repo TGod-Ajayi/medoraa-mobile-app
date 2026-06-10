@@ -16,9 +16,11 @@ import {
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
-import { envelope, eyeOff, eyeOn, lock, profile } from '../../config/svg';
 import { showMessage } from 'react-native-flash-message';
 import { Hooks, setSessionTokens, Types } from '@repo/ui/graphql';
+import { envelope, eyeOff, eyeOn, lock, profile } from '@/config/svg';
+
+const INPUT_ICON_SIZE = 24;
 
 const MONTHS = [
   'January',
@@ -53,7 +55,7 @@ function isAtLeast18YearsOld(birthDate: Date): boolean {
   return age >= 18;
 }
 
-const { height, width } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 function isValidEmail(value: string): boolean {
   const v = value.trim();
@@ -185,7 +187,9 @@ export default function SignUpScreen() {
             value={firstName}
             onChangeText={setFirstName}
             autoCapitalize='words'
-            leftIcon={<SvgXml xml={profile} />}
+            leftIcon={
+              <SvgXml xml={profile} width={INPUT_ICON_SIZE} height={INPUT_ICON_SIZE} />
+            }
           />
           {firstNameLooksInvalid ? (
             <Text style={[styles.fieldError, { color: theme.error }]}>
@@ -199,7 +203,9 @@ export default function SignUpScreen() {
             value={lastName}
             onChangeText={setLastName}
             autoCapitalize='words'
-            leftIcon={<SvgXml xml={profile} />}
+            leftIcon={
+              <SvgXml xml={profile} width={INPUT_ICON_SIZE} height={INPUT_ICON_SIZE} />
+            }
           />
           {lastNameLooksInvalid ? (
             <Text style={[styles.fieldError, { color: theme.error }]}>
@@ -250,7 +256,9 @@ export default function SignUpScreen() {
             keyboardType='email-address'
             autoCapitalize='none'
             autoCorrect={false}
-            leftIcon={<SvgXml xml={envelope} />}
+            leftIcon={
+              <SvgXml xml={envelope} width={INPUT_ICON_SIZE} height={INPUT_ICON_SIZE} />
+            }
           />
             {emailLooksInvalid ? (
               <Text style={[styles.fieldError, { color: theme.error }]}>
@@ -264,13 +272,19 @@ export default function SignUpScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!passwordVisible}
-            leftIcon={<SvgXml xml={lock} />}
+            leftIcon={
+              <SvgXml xml={lock} width={INPUT_ICON_SIZE} height={INPUT_ICON_SIZE} />
+            }
             rightContent={
               <Pressable
                 onPress={() => setPasswordVisible((v) => !v)}
                 hitSlop={8}
                 style={styles.inputAction}>
-                <SvgXml xml={passwordVisible ? eyeOn : eyeOff} />
+                <SvgXml
+                  xml={passwordVisible ? eyeOn : eyeOff}
+                  width={INPUT_ICON_SIZE}
+                  height={INPUT_ICON_SIZE}
+                />
               </Pressable>
             }
           />

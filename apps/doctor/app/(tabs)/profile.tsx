@@ -3,13 +3,21 @@ import { fonts } from '@/config/fonts';
 import { help, language, terms } from '@/config/svg';
 import { useTheme } from '@/config/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { onUserSignOut } from '@repo/ui/graphql';
+import { onUserSignOut, useDoctorUser } from '@repo/ui/graphql';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { showMessage } from 'react-native-flash-message';
 import { SvgXml } from 'react-native-svg';
+
+const DEFAULT_AVATAR = 'https://randomuser.me/api/portraits/women/44.jpg';
+
+function formatDoctorName(firstName?: string | null, lastName?: string | null) {
+  const fullName = [firstName, lastName].filter(Boolean).join(' ');
+  if (!fullName) return 'Doctor';
+  return fullName.startsWith('Dr') ? fullName : `Dr ${fullName}`;
+}
 
 type MenuItem = {
   id: string;
@@ -31,7 +39,15 @@ const MENU_ITEMS: MenuItem[] = [
 export default function ProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { user, loading } = useDoctorUser();
   const [loggingOut, setLoggingOut] = useState(false);
+
+  const displayName = useMemo(
+    () => formatDoctorName(user?.firstName, user?.lastName),
+    [user?.firstName, user?.lastName],
+  );
+  const avatarUri = user?.profilePhoto?.trim() || DEFAULT_AVATAR;
+  const email = user?.email?.trim() || '';
 
   const handleLogout = async () => {
     if (loggingOut) return;
@@ -60,6 +76,9 @@ export default function ProfileScreen() {
     if (id === 'availability') {
       router.push('/availability' as never);
     }
+    if (id === 'security') {
+      router.push('/security' as never);
+    }
   };
 
   return (
@@ -73,20 +92,27 @@ export default function ProfileScreen() {
       >
         <View style={styles.profileTop}>
           <View style={styles.avatarWrap}>
-            <Image
-              source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }}
-              style={styles.avatar}
-            />
+            {loading ? (
+              <View style={[styles.avatar, styles.avatarLoading]}>
+                <ActivityIndicator size="small" color="#20BEB8" />
+              </View>
+            ) : (
+              <Image source={{ uri: avatarUri }} style={styles.avatar} />
+            )}
             <Pressable style={styles.addAvatarBtn}>
               <Ionicons name="add" size={20} color="#FFFFFF" />
             </Pressable>
           </View>
 
           <View style={styles.nameRow}>
-            <Text style={[styles.name, { color: theme.textPrimary }]}>Dr Zenifer Aniston</Text>
-            <Ionicons name="checkmark-circle-outline" size={22} color="#20BEB8" />
+            <Text style={[styles.name, { color: theme.textPrimary }]}>
+              {loading ? 'Loading...' : displayName}
+            </Text>
+            {!loading ? (
+              <Ionicons name="checkmark-circle-outline" size={22} color="#20BEB8" />
+            ) : null}
           </View>
-          <Text style={styles.email}>amilie498@gmail.com</Text>
+          <Text style={styles.email}>{loading ? ' ' : email}</Text>
         </View>
 
         <View style={styles.divider} />
@@ -162,6 +188,11 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 62,
+  },
+  avatarLoading: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E2E8F0',
   },
   addAvatarBtn: {
     position: 'absolute',

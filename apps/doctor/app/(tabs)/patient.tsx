@@ -7,10 +7,13 @@ import {
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { usePatients, type DoctorPatient } from '@repo/ui/graphql';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   Image,
+  type ImageSourcePropType,
   LayoutAnimation,
   Platform,
   Pressable,
@@ -23,53 +26,81 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 
-type Patient = {
+const DEFAULT_AVATAR = require('../../assets/images/medical1.png');
+const EMPTY_PATIENTS_IMAGE = require('../../assets/images/emptyDept.png');
+
+type PatientListItem = {
   id: string;
   name: string;
-  gender: 'Male' | 'Female';
-  age: number;
-  avatar: any;
+  meta: string;
+  email: string;
+  phone: string;
+  createdAt: string;
+  updatedAt: string;
+  avatar: ImageSourcePropType;
 };
 
-const PATIENTS: Patient[] = [
-  {
-    id: '1',
-    name: 'John Smith',
-    gender: 'Male',
-    age: 35,
-    avatar: require('../../assets/images/medical1.png'),
-  },
-  {
-    id: '2',
-    name: 'Leslie Alexander',
-    gender: 'Male',
-    age: 35,
-    avatar: require('../../assets/images/medical1.png'),
-  },
-  {
-    id: '3',
-    name: 'Savannah Nguyen',
-    gender: 'Male',
-    age: 35,
-    avatar: require('../../assets/images/medical1.png'),
-  },
-  {
-    id: '4',
-    name: 'Kathryn Murphy',
-    gender: 'Female',
-    age: 35,
-    avatar: require('../../assets/images/medical1.png'),
-  },
-  {
-    id: '5',
-    name: 'Theresa Webb',
-    gender: 'Female',
-    age: 35,
-    avatar: require('../../assets/images/medical1.png'),
-  },
-];
-
 const TABS = ['All patients', 'Pending', 'Past'] as const;
+
+function formatPatientDate(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  } catch {
+    return '—';
+  }
+}
+
+function getPatientDisplayName(user: DoctorPatient['user']) {
+  return [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || 'Patient';
+}
+
+function getPatientMeta(user: DoctorPatient['user']) {
+  const parts: string[] = [];
+
+  if (user.dateOfBirth) {
+    const dob = new Date(user.dateOfBirth);
+    if (!Number.isNaN(dob.getTime())) {
+      const today = new Date();
+      let age = today.getFullYear() - dob.getFullYear();
+      const monthDelta = today.getMonth() - dob.getMonth();
+      if (
+        monthDelta < 0 ||
+        (monthDelta === 0 && today.getDate() < dob.getDate())
+      ) {
+        age -= 1;
+      }
+      if (age >= 0) parts.push(`${age} yrs`);
+    }
+  }
+
+  if (user.gender === 'MALE') parts.push('Male');
+  if (user.gender === 'FEMALE') parts.push('Female');
+
+  return parts.length > 0 ? parts.join(' · ') : 'Patient';
+}
+
+function getPatientAvatar(profilePhoto?: string | null): ImageSourcePropType {
+  return profilePhoto ? { uri: profilePhoto } : DEFAULT_AVATAR;
+}
+
+function mapApiPatient(patient: DoctorPatient): PatientListItem {
+  const { user } = patient;
+
+  return {
+    id: patient.id,
+    name: getPatientDisplayName(user),
+    meta: getPatientMeta(user),
+    email: user.email,
+    phone: user.phoneNumber?.trim() || '—',
+    createdAt: patient.createdAt,
+    updatedAt: patient.updatedAt,
+    avatar: getPatientAvatar(user.profilePhoto),
+  };
+}
 
 export default function PatientsScreen() {
   const theme = useTheme();
@@ -79,10 +110,35 @@ export default function PatientsScreen() {
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(
     null,
   );
+  const [selectedPatient, setSelectedPatient] = useState<PatientListItem | null>(
+    null,
+  );
   const notesSheetRef = useRef<BottomSheetModal>(null);
   const profileSheetRef = useRef<BottomSheetModal>(null);
   const notesSnapPoints = useMemo(() => ['55%'], []);
   const profileSnapPoints = useMemo(() => ['90%'], []);
+
+  const { patients: apiPatients, loading, error, refetch } = usePatients();
+
+  useEffect(() => {
+    console.log(
+      'patients response\n' +
+        JSON.stringify(
+          {
+            patients: apiPatients,
+            loading,
+            error: error?.message ?? null,
+          },
+          null,
+          2,
+        ),
+    );
+  }, [apiPatients, error, loading]);
+
+  const patients = useMemo(
+    () => apiPatients.map(mapApiPatient),
+    [apiPatients],
+  );
 
   useEffect(() => {
     if (
@@ -93,13 +149,15 @@ export default function PatientsScreen() {
     }
   }, []);
 
-  const openNotesSheet = () => {
+  const openNotesSheet = useCallback((patient: PatientListItem) => {
+    setSelectedPatient(patient);
     notesSheetRef.current?.present();
-  };
+  }, []);
 
-  const openProfileSheet = () => {
+  const openProfileSheet = useCallback((patient: PatientListItem) => {
+    setSelectedPatient(patient);
     profileSheetRef.current?.present();
-  };
+  }, []);
 
   const renderBackdrop = (
     props: React.ComponentProps<typeof BottomSheetBackdrop>,
@@ -112,9 +170,17 @@ export default function PatientsScreen() {
     />
   );
 
-  const filtered = PATIENTS.filter((p) =>
-    p.name.toLowerCase().includes(query.trim().toLowerCase()),
-  );
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return patients;
+    return patients.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.email.toLowerCase().includes(q) ||
+        p.phone.toLowerCase().includes(q) ||
+        p.id.toLowerCase().includes(q),
+    );
+  }, [patients, query]);
 
   return (
     <SafeAreaView
@@ -182,11 +248,51 @@ export default function PatientsScreen() {
         </View>
 
         {/* List */}
+        {loading && patients.length === 0 ? (
+          <View style={styles.centeredState}>
+            <ActivityIndicator size="large" color={theme.accent} />
+          </View>
+        ) : error ? (
+          <View style={styles.centeredState}>
+            <Text style={[styles.stateText, { color: theme.textSecondary }]}>
+              Could not load patients.
+            </Text>
+            <Pressable
+              onPress={() => refetch()}
+              style={[styles.retryBtn, { borderColor: theme.accent }]}>
+              <Text style={[styles.retryBtnText, { color: theme.accent }]}>
+                Try again
+              </Text>
+            </Pressable>
+          </View>
+        ) : patients.length === 0 ? (
+          <View style={styles.centeredState}>
+            <Image
+              source={EMPTY_PATIENTS_IMAGE}
+              style={styles.emptyImage}
+              resizeMode="contain"
+            />
+            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>
+              No patient found for doctor
+            </Text>
+            <Text style={[styles.stateText, { color: theme.textSecondary }]}>
+              Patients linked to your practice will appear here.
+            </Text>
+          </View>
+        ) : (
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[
+            styles.listContent,
+            filtered.length === 0 && styles.listContentEmpty,
+          ]}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <Text style={[styles.stateText, { color: theme.textSecondary }]}>
+              No patients match your search.
+            </Text>
+          }
           renderItem={({ item }) => {
             const isExpanded = expandedPatientId === item.id;
 
@@ -218,7 +324,7 @@ export default function PatientsScreen() {
                           styles.cardMeta,
                           { color: theme.textSecondary },
                         ]}>
-                        {item.gender} · Age:{item.age}
+                        {item.meta}
                       </Text>
                     </View>
                   </View>
@@ -252,7 +358,7 @@ export default function PatientsScreen() {
                             styles.detailDate,
                             { color: theme.textPrimary },
                           ]}>
-                          26-11-2024
+                          {formatPatientDate(item.updatedAt)}
                         </Text>
                       </View>
 
@@ -268,7 +374,7 @@ export default function PatientsScreen() {
                               styles.detailLabel,
                               { color: theme.textSecondary },
                             ]}>
-                            Upcoming
+                            Registered
                           </Text>
                         </View>
                         <Text
@@ -276,7 +382,7 @@ export default function PatientsScreen() {
                             styles.detailDate,
                             { color: theme.textPrimary },
                           ]}>
-                          31-11-2024
+                          {formatPatientDate(item.createdAt)}
                         </Text>
                       </View>
                     </View>
@@ -301,7 +407,7 @@ export default function PatientsScreen() {
                             styles.contactValue,
                             { color: theme.textSecondary },
                           ]}>
-                          (319) 555-0115
+                          {item.phone}
                         </Text>
                       </View>
 
@@ -316,7 +422,7 @@ export default function PatientsScreen() {
                             styles.contactValue,
                             { color: theme.textSecondary },
                           ]}>
-                          smith.johnny@gmail.com
+                          {item.email}
                         </Text>
                       </View>
                     </View>
@@ -327,7 +433,7 @@ export default function PatientsScreen() {
                           styles.outlineButton,
                           { borderColor: "#4CCBC6" },
                         ]}
-                        onPress={openProfileSheet}>
+                        onPress={() => openProfileSheet(item)}>
                         <Text
                           style={[
                             styles.outlineButtonText,
@@ -341,7 +447,7 @@ export default function PatientsScreen() {
                           styles.filledButton,
                           { backgroundColor: "#20BEB8" },
                         ]}
-                        onPress={openNotesSheet}>
+                        onPress={() => openNotesSheet(item)}>
                         <Text
                           style={[styles.filledButtonText, { color: '#fff' }]}>
                           Consultation Notes
@@ -354,6 +460,7 @@ export default function PatientsScreen() {
             );
           }}
         />
+        )}
       </View>
       <BottomSheetModal
         ref={notesSheetRef}
@@ -432,14 +539,14 @@ export default function PatientsScreen() {
               Patient profile
             </Text>
             <Image
-              source={require('../../assets/images/medical1.png')}
+              source={selectedPatient?.avatar ?? DEFAULT_AVATAR}
               style={styles.profileAvatar}
             />
             <Text style={[styles.profileName, { color: theme.textPrimary }]}>
-              John Smith
+              {selectedPatient?.name ?? 'Patient'}
             </Text>
             <Text style={[styles.profileMeta, { color: theme.textSecondary }]}>
-              Male · Age:35
+              {selectedPatient?.meta ?? '—'}
             </Text>
           </View>
 
@@ -453,18 +560,22 @@ export default function PatientsScreen() {
                   </Text>
                 </View>
                 <Text style={[styles.detailDate, { color: theme.textPrimary }]}>
-                  26-11-2024
+                  {selectedPatient
+                    ? formatPatientDate(selectedPatient.updatedAt)
+                    : '—'}
                 </Text>
               </View>
               <View style={styles.detailBox}>
                 <View style={styles.detailBoxHeader}>
                   <Ionicons name="time-outline" size={18} color="#22C55E" />
                   <Text style={[styles.detailLabel, { color: theme.textSecondary }]}>
-                    Upcoming
+                    Registered
                   </Text>
                 </View>
                 <Text style={[styles.detailDate, { color: theme.textPrimary }]}>
-                  31-11-2024
+                  {selectedPatient
+                    ? formatPatientDate(selectedPatient.createdAt)
+                    : '—'}
                 </Text>
               </View>
             </View>
@@ -498,22 +609,15 @@ export default function PatientsScreen() {
             <View style={styles.contactRow}>
               <Ionicons name="call-outline" size={18} color={theme.textSecondary} />
               <Text style={[styles.contactValue, { color: theme.textSecondary }]}>
-                (319) 555-0115
+                {selectedPatient?.phone ?? '—'}
               </Text>
             </View>
             <View style={styles.contactRow}>
               <Ionicons name="mail-outline" size={18} color={theme.textSecondary} />
               <Text style={[styles.contactValue, { color: theme.textSecondary }]}>
-                smith.johnny@gmail.com
+                {selectedPatient?.email ?? '—'}
               </Text>
             </View>
-            <Text style={[styles.emergencyText, { color: '#20BEB8' }]}>Emergency Contact</Text>
-            <Text style={[styles.contactValue, { color: theme.textPrimary }]}>
-              Kathryn Murphy
-            </Text>
-            <Text style={[styles.contactValue, { color: theme.textSecondary }]}>
-              Wife · (319) 555-0115
-            </Text>
           </View>
         </BottomSheetView>
       </BottomSheetModal>
@@ -578,6 +682,43 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 24,
     gap: 12,
+  },
+  listContentEmpty: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  centeredState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 40,
+    paddingHorizontal: 24,
+  },
+  emptyImage: {
+    width: 160,
+    height: 160,
+    marginBottom: 8,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontFamily: fonts.semiBold,
+    textAlign: 'center',
+  },
+  stateText: {
+    fontSize: 14,
+    fontFamily: fonts.regular,
+    textAlign: 'center',
+  },
+  retryBtn: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+  },
+  retryBtnText: {
+    fontSize: 14,
+    fontFamily: fonts.semiBold,
   },
   cardWrapper: {
     borderRadius: 16,

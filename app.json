@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "47bd3097-7d2b-47c2-8508-6953439f54c8"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.udeh.medoraaapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}

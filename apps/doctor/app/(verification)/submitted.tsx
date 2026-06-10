@@ -1,5 +1,7 @@
+import { Button } from '@/components';
 import { useTheme } from '@/config/theme';
-import { useMemo } from 'react';
+import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Image,
   StyleSheet,
@@ -11,10 +13,31 @@ import {
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+const REDIRECT_DELAY_MS = 30_000;
+
 export default function SubmittedScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const { width } = useWindowDimensions();
+  const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const goToLogin = useCallback(() => {
+    if (redirectTimeoutRef.current) {
+      clearTimeout(redirectTimeoutRef.current);
+      redirectTimeoutRef.current = null;
+    }
+    router.replace('/(auth)/sign-in');
+  }, [router]);
+
+  useEffect(() => {
+    redirectTimeoutRef.current = setTimeout(goToLogin, REDIRECT_DELAY_MS);
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+    };
+  }, [goToLogin]);
 
   const confettiColors = useMemo(
     () => [
@@ -51,6 +74,12 @@ export default function SubmittedScreen() {
             24 - 36 hours
           </Text>
         </View>
+        <Button
+          theme={theme}
+          label="Go to login"
+          onPress={goToLogin}
+          style={{ backgroundColor: theme.accent, borderRadius: 30 }}
+        />
       </SafeAreaView>
       <View style={styles.confettiLayer} pointerEvents="none">
         <ConfettiCannon

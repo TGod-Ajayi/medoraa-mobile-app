@@ -67,7 +67,6 @@ export default function PhysicalClinicScreen() {
     }>();
   const snapPoints = useMemo(() => ['38%', '48%'], []);
   const specializationSnapPoints = useMemo(() => ['45%', '62%'], []);
-
   useEffect(() => {
 console.log("response from the specialization ", specialtiesData);
   }, [specialtiesData]);

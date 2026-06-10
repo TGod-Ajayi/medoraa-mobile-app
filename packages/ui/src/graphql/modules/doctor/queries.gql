@@ -1,7 +1,10 @@
 query GetDoctorDetails($doctorId: ID!) {
   getDoctorDetails(doctorId: $doctorId) {
+    averageRating
+    bio
     clinicAddress
     clinicName
+    consultationFee
     createdAt
     doctorsSpecialties {
       createdAt
@@ -10,7 +13,6 @@ query GetDoctorDetails($doctorId: ID!) {
         code
         createdAt
         description
-        doctorName
         id
         imageUrl
         name
@@ -23,11 +25,22 @@ query GetDoctorDetails($doctorId: ID!) {
     identificationFile
     identificationNumber
     identificationType
+    instantConsultationEnabled
+    instantConsultationFee
+    isOnline
+    isVerified
     level
     medicalCertificateFile
     medicalLicenseFile
     medicalSchool
+    totalReviews
     updatedAt
+    yearsOfExperience
+    user {
+      firstName
+      lastName
+      profilePhoto
+    }
   }
 }
 
@@ -36,6 +49,14 @@ query GetDoctor {
     clinicAddress
     clinicName
     createdAt
+    availability {
+      id
+      dayOfWeek
+      startTime
+      endTime
+      timezone
+      isActive
+    }
     doctorsSpecialties {
       createdAt
       id
@@ -43,7 +64,6 @@ query GetDoctor {
         code
         createdAt
         description
-        doctorName
         id
         imageUrl
         name
@@ -61,6 +81,58 @@ query GetDoctor {
     medicalLicenseFile
     medicalSchool
     updatedAt
+    user {
+      firstName
+      lastName
+    }
+  }
+}
+
+query GetDoctors($filter: DoctorFilterInput, $paginationArgs: OffsetPaginationArgs!) {
+  getDoctors(filter: $filter, paginationArgs: $paginationArgs) {
+    pageInfo {
+      currentPage
+      itemCount
+      itemsPerPage
+      totalItems
+      totalPages
+    }
+    items {
+      id
+      averageRating
+      totalReviews
+      consultationFee
+      instantConsultationEnabled
+      isOnline
+      level
+      medicalSchool
+      user {
+        firstName
+        lastName
+        profilePhoto
+      }
+      doctorsSpecialties {
+        id
+        specialty {
+          id
+          name
+        }
+      }
+    }
+  }
+}
+
+query GetDepartments {
+  getDepartments {
+    id
+    code
+    name
+    imageUrl
+    sortOrder
+    specialties {
+      id
+      name
+    }
   }
 }
 
@@ -70,10 +142,165 @@ query GetSpecialties {
     code
     createdAt
     description
-    doctorName
     id
     imageUrl
     name
     updatedAt
+  }
+}
+
+query GetCommonSymptoms {
+  getCommonSymptoms {
+    id
+    name
+    imageUrl
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+query GetCommonSymptom($id: ID!) {
+  getCommonSymptom(id: $id) {
+    id
+    name
+    imageUrl
+    isActive
+    createdAt
+    updatedAt
+    doctorCommonSymptoms {
+      id
+      doctor {
+        id
+        averageRating
+        totalReviews
+        consultationFee
+        instantConsultationEnabled
+        isOnline
+        level
+        medicalSchool
+        user {
+          firstName
+          lastName
+          profilePhoto
+        }
+        doctorsSpecialties {
+          id
+          specialty {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+}
+
+query GetPatients($filter: PatientFilterInput, $paginationArgs: OffsetPaginationArgs!) {
+  patients(filter: $filter, paginationArgs: $paginationArgs) {
+    items {
+      id
+      createdAt
+      updatedAt
+      user {
+        id
+        firstName
+        lastName
+        email
+        phoneNumber
+        profilePhoto
+        dateOfBirth
+        gender
+      }
+    }
+    pageInfo {
+      currentPage
+      itemCount
+      itemsPerPage
+      totalItems
+      totalPages
+    }
+  }
+}
+
+query ConsultationHistory($filter: ConsultationHistoryFilter) {
+  consultationHistory(filter: $filter) {
+    id
+    status
+    type
+    startDate
+    endDate
+    notes
+    paymentStatus
+    patient {
+      id
+      user {
+        firstName
+        lastName
+        profilePhoto
+      }
+    }
+    doctor {
+      id
+      medicalSchool
+      level
+      user {
+        firstName
+        lastName
+        profilePhoto
+      }
+      doctorsSpecialties {
+        specialty {
+          name
+        }
+      }
+    }
+    consultationSession {
+      id
+      status
+      type
+    }
+  }
+}
+
+query GetWalletByDoctor($doctorId: ID!) {
+  getWalletByDoctor(doctorId: $doctorId) {
+    id
+    availableBalance
+    pendingBalance
+    totalEarned
+    totalWithdrawn
+    createdAt
+    updatedAt
+    transactions {
+      id
+      amount
+      description
+      type
+      createdAt
+    }
+  }
+}
+
+query GetDoctorReviews($doctorId: ID!) {
+  getDoctorReviews(doctorId: $doctorId) {
+    id
+    rating
+    text
+    doctorResponse
+    createdAt
+    updatedAt
+    patient {
+      id
+      user {
+        firstName
+        lastName
+        profilePhoto
+      }
+    }
+    appointment {
+      id
+      startDate
+    }
   }
 }

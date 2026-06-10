@@ -1,32 +1,54 @@
-import { homeActive, homeInactive, patientActive, patientInactive, scheduleActive, scheduleInactive, activeRecord, inactiveRecord, doctorProfileActive, doctorProfileInactive} from '@/config/svg';
+import {
+  activeRecord,
+  doctorProfileActive,
+  doctorProfileInactive,
+  homeActive,
+  homeInactive,
+  inactiveRecord,
+  patientActive,
+  patientInactive,
+  scheduleActive,
+  scheduleInactive,
+} from '@/config/svg';
 import { useTheme } from '@/config/theme';
 import { HapticTab } from '@repo/ui/components';
 import { Colors } from '@repo/ui/constants';
 import { Tabs } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { StyleSheet, useColorScheme, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
+
+const ICON_SIZE = 24;
+
+function TabSvg({ xml }: { xml: string }) {
+  return (
+    <View style={styles.iconSlot}>
+      <SvgXml xml={xml} width={ICON_SIZE} height={ICON_SIZE} />
+    </View>
+  );
+}
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const theme = useTheme();
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: (Colors as Record<string, typeof Colors.light>)[
-          colorScheme === "dark" ? 'dark' :'light'
+          colorScheme === 'dark' ? 'dark' : 'light'
         ].tint,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: useTheme().background,
+          backgroundColor: theme.background,
         },
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, focused }) => (
-            focused ? <SvgXml xml={homeActive} color={color} /> : <SvgXml xml={homeInactive} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <TabSvg xml={focused ? homeActive : homeInactive} />
           ),
         }}
       />
@@ -34,8 +56,8 @@ export default function TabLayout() {
         name="patient"
         options={{
           title: 'Patients',
-          tabBarIcon: ({ color, focused }) => (
-           focused ? <SvgXml xml={patientActive} color={color} /> : <SvgXml xml={patientInactive} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <TabSvg xml={focused ? patientActive : patientInactive} />
           ),
         }}
       />
@@ -43,8 +65,8 @@ export default function TabLayout() {
         name="schedule"
         options={{
           title: 'Schedule',
-          tabBarIcon: ({ color, focused }) => (
-            focused ? <SvgXml xml={scheduleActive} color={color} /> : <SvgXml xml={scheduleInactive} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <TabSvg xml={focused ? scheduleActive : scheduleInactive} />
           ),
         }}
       />
@@ -52,8 +74,8 @@ export default function TabLayout() {
         name="records"
         options={{
           title: 'Records',
-          tabBarIcon: ({ color, focused}) => (
-            focused ? <SvgXml xml={activeRecord} color={color} /> : <SvgXml xml={inactiveRecord} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <TabSvg xml={focused ? activeRecord : inactiveRecord} />
           ),
         }}
       />
@@ -61,11 +83,20 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color , focused}) => (
-          focused ? <SvgXml xml={doctorProfileActive} color={color} /> : <SvgXml xml={doctorProfileInactive} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <TabSvg xml={focused ? doctorProfileActive : doctorProfileInactive} />
           ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  iconSlot: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

@@ -2,9 +2,22 @@ import { Button } from '@/components';
 import { fonts } from '@/config/fonts';
 import { useTheme } from '@/config/theme';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  Types,
+  useDoctor,
+  useDoctorWallet,
+  type WalletTransactionItem,
+} from '@repo/ui/graphql';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Tx = {
@@ -15,17 +28,90 @@ type Tx = {
   positive?: boolean;
 };
 
-const transactions: Tx[] = [
-  { id: 't1', name: 'Adam Costa', subtitle: 'Payment Received • Dec 04 2024', amount: '+120.00', positive: true },
-  { id: 't2', name: 'Sarah Eric', subtitle: 'Bank Transfer • Dec 04 2024', amount: '-500.00' },
-  { id: 't3', name: 'Adam Costa', subtitle: 'Payment Received • Dec 04 2024', amount: '+120.00', positive: true },
-  { id: 't4', name: 'Sarah Eric', subtitle: 'Bank Transfer • Dec 04 2024', amount: '-500.00' },
-  { id: 't5', name: 'Sarah Eric', subtitle: 'Bank Transfer • Dec 04 2024', amount: '-500.00' },
-];
+function formatCurrency(value?: number | null) {
+  if (value == null || Number.isNaN(value)) return '$0.00';
+  return `$${value.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function formatTransactionDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric',
+  });
+}
+
+function transactionTypeLabel(type: Types.WalletTransactionType) {
+  switch (type) {
+    case Types.WalletTransactionType.Credit:
+      return 'Payment Received';
+    case Types.WalletTransactionType.Refund:
+      return 'Refund';
+    case Types.WalletTransactionType.Withdrawal:
+      return 'Withdrawal';
+    case Types.WalletTransactionType.Debit:
+    default:
+      return 'Debit';
+  }
+}
+
+function isPositiveTransaction(type: Types.WalletTransactionType) {
+  return (
+    type === Types.WalletTransactionType.Credit ||
+    type === Types.WalletTransactionType.Refund
+  );
+}
+
+function mapTransaction(tx: WalletTransactionItem): Tx {
+  const positive = isPositiveTransaction(tx.type);
+  const prefix = positive ? '+' : '-';
+  const label = transactionTypeLabel(tx.type);
+
+  const formatted = formatCurrency(Math.abs(tx.amount));
+
+  return {
+    id: tx.id,
+    name: tx.description?.trim() || label,
+    subtitle: `${label} • ${formatTransactionDate(tx.createdAt)}`,
+    amount: `${prefix}${formatted}`,
+    positive,
+  };
+}
 
 export default function WalletScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { doctor, loading: doctorLoading } = useDoctor();
+  const { wallet, loading: walletLoading, error } = useDoctorWallet({
+    doctorId: doctor?.id,
+  });
+
+  const loading = doctorLoading || walletLoading;
+  const transactions = useMemo(
+    () => (wallet?.transactions ?? []).slice(0, 5).map(mapTransaction),
+    [wallet?.transactions],
+  );
+
+  useEffect(() => {
+    console.log(
+      '[doctor-wallet] getWalletByDoctor response:\n' +
+        JSON.stringify(
+          {
+            doctorId: doctor?.id ?? null,
+            wallet,
+            loading,
+            error: error?.message ?? null,
+          },
+          null,
+          2,
+        ),
+    );
+  }, [doctor?.id, wallet, loading, error]);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={['top']}>
@@ -37,73 +123,113 @@ export default function WalletScreen() {
         <View style={styles.iconBtn} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.balanceCard}>
+      {loading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#20BEB8" />
+        </View>
+      ) : error ? (
+        <View style={styles.centered}>
+          <Text style={[styles.errorText, { color: theme.textPrimary }]}>
+            Unable to load wallet. Please try again.
+          </Text>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.balanceCard}>
             <View style={styles.cardRingTop} />
             <View style={styles.cardRing2Top} />
-          <View style={styles.cardRingBottom} />
-          <Text style={styles.balanceLabel}>Available balance</Text>
-          <Text style={styles.balanceAmount}>$1280.82</Text>
-        </View>
+            <View style={styles.cardRingBottom} />
+            <Text style={styles.balanceLabel}>Available balance</Text>
+            <Text style={styles.balanceAmount}>
+              {formatCurrency(wallet?.availableBalance)}
+            </Text>
+          </View>
 
-        <Button
-          theme={theme}
-          label="Withdraw"
-          variant="secondary"
-          onPress={() => router.push('/withdraw' as never)}
-          style={styles.withdrawBtn}
-          labelStyle={styles.withdrawLabel}
-        />
+          <Button
+            theme={theme}
+            label="Withdraw"
+            variant="secondary"
+            onPress={() => router.push('/withdraw' as never)}
+            style={styles.withdrawBtn}
+            labelStyle={styles.withdrawLabel}
+          />
 
-        <View style={styles.statsRow}>
-          <View style={[styles.statCard, { backgroundColor: theme.card }]}>
-            <Text style={styles.statLabel}>This week</Text>
-            <View style={styles.statValueRow}>
-              <Text style={[styles.statAmount, { color: theme.textPrimary }]}>$520</Text>
-              <Text style={styles.statDeltaPositive}> 12%</Text>
+          <View style={styles.statsRow}>
+            <View style={[styles.statCard, { backgroundColor: theme.card }]}>
+              <Text style={styles.statLabel}>Total earned</Text>
+              <View style={styles.statValueRow}>
+                <Text style={[styles.statAmount, { color: theme.textPrimary }]}>
+                  {formatCurrency(wallet?.totalEarned)}
+                </Text>
+              </View>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: theme.card }]}>
+              <Text style={styles.statLabel}>Pending</Text>
+              <View style={styles.statValueRow}>
+                <Text style={[styles.statAmount, { color: theme.textPrimary }]}>
+                  {formatCurrency(wallet?.pendingBalance)}
+                </Text>
+              </View>
             </View>
           </View>
-          <View style={[styles.statCard, { backgroundColor: theme.card }]}>
-            <Text style={styles.statLabel}>This month</Text>
-            <View style={styles.statValueRow}>
-              <Text style={[styles.statAmount, { color: theme.textPrimary }]}>$1920</Text>
-              <Text style={styles.statDeltaNegative}> 4%</Text>
-            </View>
+
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
+              Recent Transactions
+            </Text>
+            {transactions.length > 0 ? (
+              <Pressable>
+                <Text style={styles.seeAll}>See All</Text>
+              </Pressable>
+            ) : null}
           </View>
-        </View>
 
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Recent Transactions</Text>
-          <Pressable>
-            <Text style={styles.seeAll}>See All</Text>
-          </Pressable>
-        </View>
-
-        <View style={styles.txList}>
-          {transactions.map((tx) => (
-            <View key={tx.id} style={[styles.txCard, { backgroundColor: theme.card }]}>
-              <View style={[styles.txIconWrap, { backgroundColor: '#E8F6F5' }]}>
-                <Ionicons
-                  name={tx.positive ? 'arrow-down' : 'arrow-up'}
-                  size={16}
-                  color="#20BEB8"
-                />
-              </View>
-              <View style={styles.txBody}>
-                <Text style={[styles.txName, { color: theme.textPrimary }]}>{tx.name}</Text>
-                <Text style={styles.txSub}>{tx.subtitle}</Text>
-              </View>
-              <Text style={[styles.txAmount, { color: theme.textPrimary }]}>{tx.amount}</Text>
+          {transactions.length === 0 ? (
+            <View style={[styles.emptyCard, { backgroundColor: theme.card }]}>
+              <Text style={[styles.emptyText, { color: theme.textPrimary }]}>
+                No transactions yet
+              </Text>
             </View>
-          ))}
-        </View>
-      </ScrollView>
+          ) : (
+            <View style={styles.txList}>
+              {transactions.map((tx) => (
+                <View key={tx.id} style={[styles.txCard, { backgroundColor: theme.card }]}>
+                  <View style={[styles.txIconWrap, { backgroundColor: '#E8F6F5' }]}>
+                    <Ionicons
+                      name={tx.positive ? 'arrow-down' : 'arrow-up'}
+                      size={16}
+                      color="#20BEB8"
+                    />
+                  </View>
+                  <View style={styles.txBody}>
+                    <Text style={[styles.txName, { color: theme.textPrimary }]}>{tx.name}</Text>
+                    <Text style={styles.txSub}>{tx.subtitle}</Text>
+                  </View>
+                  <Text style={[styles.txAmount, { color: theme.textPrimary }]}>{tx.amount}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  errorText: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontFamily: fonts.medium,
+    textAlign: 'center',
+  },
   header: {
     paddingHorizontal: 16,
     paddingTop: 8,
@@ -254,6 +380,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontFamily: fonts.medium,
+  },
+  emptyCard: {
+    borderRadius: 10,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: fonts.medium,
+    color: '#64748B',
   },
   txList: {
     gap: 10,

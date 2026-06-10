@@ -1,20 +1,27 @@
+import { Button } from '@/components';
 import { fonts } from '@/config/fonts';
 import { useTheme } from '@/config/theme';
 import { Ionicons } from '@expo/vector-icons';
-import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import BottomSheet, {
+  BottomSheetBackdrop,
+  BottomSheetScrollView,
+  BottomSheetView,
+} from '@gorhom/bottom-sheet';
+import { Hooks } from '@repo/ui/graphql';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
-  NativeSyntheticEvent,
   NativeScrollEvent,
+  NativeSyntheticEvent,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { showMessage } from 'react-native-flash-message';
 import Animated, {
   interpolateColor,
   useAnimatedStyle,
@@ -22,6 +29,8 @@ import Animated, {
   withSequence,
   withSpring,
 } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Picker } from 'react-native-wheel-pick';
 
 const SCREEN_W = Dimensions.get('window').width;
 const PAGE_WIDTH = SCREEN_W - 32;
@@ -99,7 +108,7 @@ function DayCell({
     if (selected) {
       scale.value = withSequence(
         withSpring(1.07, { damping: 11, stiffness: 420 }),
-        withSpring(1, { damping: 14, stiffness: 280 }),
+        withSpring(1, { damping: 14, stiffness: 280 })
       );
     } else {
       scale.value = withSpring(1, { damping: 16, stiffness: 260 });
@@ -114,7 +123,7 @@ function DayCell({
     backgroundColor: interpolateColor(
       selectProgress.value,
       [0, 1],
-      ['rgba(32,190,184,0)', ACCENT],
+      ['rgba(32,190,184,0)', ACCENT]
     ),
   }));
 
@@ -122,7 +131,7 @@ function DayCell({
     color: interpolateColor(
       selectProgress.value,
       [0, 1],
-      [MUTED_LETTER, '#FFFFFF'],
+      [MUTED_LETTER, '#FFFFFF']
     ),
   }));
 
@@ -130,7 +139,7 @@ function DayCell({
     color: interpolateColor(
       selectProgress.value,
       [0, 1],
-      [themeTextPrimary, '#FFFFFF'],
+      [themeTextPrimary, '#FFFFFF']
     ),
   }));
 
@@ -145,13 +154,15 @@ function DayCell({
       }}>
       <Animated.View style={[styles.dayCell, wrapStyle]}>
         <Animated.View
-          pointerEvents="none"
+          pointerEvents='none'
           style={[StyleSheet.absoluteFillObject, styles.dayCellFill, fillStyle]}
         />
         <Animated.Text style={[styles.weekText, weekLetterStyle]}>
           {letter}
         </Animated.Text>
-        <Animated.Text style={[styles.dayText, dayNumStyle]}>{dayNum}</Animated.Text>
+        <Animated.Text style={[styles.dayText, dayNumStyle]}>
+          {dayNum}
+        </Animated.Text>
       </Animated.View>
     </Pressable>
   );
@@ -216,14 +227,246 @@ const APPOINTMENTS: Appointment[] = [
   },
 ];
 
+type AddSheetMode = 'menu' | 'availability';
+
+const AVAILABILITY_DAY_OPTIONS = [
+  { label: 'Sun', value: 0 },
+  { label: 'Mon', value: 1 },
+  { label: 'Tue', value: 2 },
+  { label: 'Wed', value: 3 },
+  { label: 'Thu', value: 4 },
+  { label: 'Fri', value: 5 },
+  { label: 'Sat', value: 6 },
+] as const;
+
+const TIME_24H_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+const HOUR_12_PICKER_DATA = Array.from({ length: 12 }, (_, i) => {
+  const value = String(i + 1).padStart(2, '0');
+  return { value, label: String(i + 1) };
+});
+
+const MINUTE_PICKER_DATA = Array.from({ length: 60 }, (_, i) => {
+  const value = String(i).padStart(2, '0');
+  return { value, label: value };
+});
+
+const PERIOD_PICKER_DATA = [
+  { value: 'AM', label: 'AM' },
+  { value: 'PM', label: 'PM' },
+] as const;
+
+function getDeviceTimezone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+}
+
+function parseTime24(time24: string): {
+  hour: string;
+  minute: string;
+  period: string;
+} {
+  const match = time24.match(/^(\d{2}):(\d{2})$/);
+  if (!match) {
+    return { hour: '09', minute: '00', period: 'AM' };
+  }
+  const hours24 = Number(match[1]);
+  const minute = match[2];
+  const period = hours24 >= 12 ? 'PM' : 'AM';
+  let hour12 = hours24 % 12;
+  if (hour12 === 0) hour12 = 12;
+  return {
+    hour: String(hour12).padStart(2, '0'),
+    minute,
+    period,
+  };
+}
+
+function toTime24(hour12: string, minute: string, period: string): string {
+  let h = Number(hour12);
+  if (period === 'AM') {
+    if (h === 12) h = 0;
+  } else if (h !== 12) {
+    h += 12;
+  }
+  return `${String(h).padStart(2, '0')}:${minute}`;
+}
+
+function formatTimeLabel(time24: string): string {
+  const { hour, minute, period } = parseTime24(time24);
+  return `${Number(hour)}:${minute} ${period}`;
+}
+
+type TimeWheelPickerProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  accent: string;
+  textColor: string;
+  labelColor: string;
+  cardColor: string;
+};
+
+const WHEEL_HEIGHT = 168;
+const ITEM_HEIGHT = 48;
+
+function TimeWheelPicker({
+  label,
+  value,
+  onChange,
+  accent,
+  textColor,
+  labelColor,
+  cardColor,
+}: TimeWheelPickerProps) {
+  const { hour, minute, period } = parseTime24(value);
+  const preview = formatTimeLabel(value);
+
+  return (
+    <View style={styles.timePickerBlock}>
+      {/* Header row: label + preview badge */}
+      <View style={styles.timePickerHeader}>
+        <Text style={[styles.timePickerLabel, { color: labelColor }]}>
+          {label}
+        </Text>
+        <View
+          style={[styles.timePickerBadge, { backgroundColor: `${accent}18` }]}>
+          <Text style={[styles.timePickerBadgeText, { color: accent }]}>
+            {preview}
+          </Text>
+        </View>
+      </View>
+
+      {/* Wheel container */}
+      <View style={[styles.timeWheelCard, { backgroundColor: cardColor }]}>
+        {/* Column headers */}
+        <View style={styles.timeWheelColumnHeaders}>
+          <Text
+            style={[styles.timeWheelColHeader, { color: labelColor, flex: 1 }]}>
+            Hour
+          </Text>
+          <Text
+            style={[styles.timeWheelColHeader, { color: labelColor, flex: 1 }]}>
+            Min
+          </Text>
+          <Text
+            style={[
+              styles.timeWheelColHeader,
+              { color: labelColor, width: 64, flex: 0 },
+            ]}>
+            AM/PM
+          </Text>
+        </View>
+
+        {/* Wheels */}
+        <View style={styles.timeWheelRow}>
+          <Picker
+            style={[styles.timeWheel, { height: WHEEL_HEIGHT }]}
+            pickerData={HOUR_12_PICKER_DATA}
+            selectedValue={hour}
+            onValueChange={(nextHour: string) => {
+              onChange(toTime24(nextHour, minute, period));
+            }}
+            textColor={textColor}
+            textSize={22}
+            selectTextColor={accent}
+            selectBackgroundColor={`${accent}18`}
+          />
+
+          {/* Colon separator */}
+          <Text style={[styles.timeWheelColon, { color: accent }]}>:</Text>
+
+          <Picker
+            style={[styles.timeWheel, { height: WHEEL_HEIGHT }]}
+            pickerData={MINUTE_PICKER_DATA}
+            selectedValue={minute}
+            onValueChange={(nextMinute: string) => {
+              onChange(toTime24(hour, nextMinute, period));
+            }}
+            textColor={textColor}
+            textSize={22}
+            selectTextColor={accent}
+            selectBackgroundColor={`${accent}18`}
+          />
+
+          {/* Divider */}
+          <View
+            style={[
+              styles.timeWheelDivider,
+              { backgroundColor: `${labelColor}25` },
+            ]}
+          />
+
+          <Picker
+            style={[styles.timeWheelPeriod, { height: WHEEL_HEIGHT }]}
+            pickerData={[...PERIOD_PICKER_DATA]}
+            selectedValue={period}
+            onValueChange={(nextPeriod: string) => {
+              onChange(toTime24(hour, minute, nextPeriod));
+            }}
+            textColor={textColor}
+            textSize={18}
+            selectTextColor={accent}
+            selectBackgroundColor={`${accent}18`}
+          />
+        </View>
+
+        {/* Selection highlight lines */}
+        <View
+          pointerEvents='none'
+          style={[
+            styles.timeWheelSelectionHighlight,
+            {
+              top: (WHEEL_HEIGHT - ITEM_HEIGHT) / 2,
+              height: ITEM_HEIGHT,
+              borderColor: `${accent}40`,
+            },
+          ]}
+        />
+      </View>
+    </View>
+  );
+}
+
+const ADD_SHEET_ACTIONS = [
+  {
+    id: 'availability',
+    label: 'Set availability',
+    subtitle: 'Manage your weekly hours',
+    icon: 'calendar-outline' as const,
+  },
+  {
+    id: 'block-time',
+    label: 'Block time off',
+    subtitle: 'Mark unavailable slots',
+    icon: 'time-outline' as const,
+  },
+  {
+    id: 'appointment',
+    label: 'Add appointment',
+    subtitle: 'Schedule a new visit',
+    icon: 'person-add-outline' as const,
+  },
+] as const;
+
 export default function ScheduleScreen() {
   const theme = useTheme();
   const detailsSheetRef = useRef<BottomSheet>(null);
+  const addSheetRef = useRef<BottomSheet>(null);
   const detailsSnapPoints = useMemo(() => ['72%'], []);
-  const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(
-    null
+  const [addSheetMode, setAddSheetMode] = useState<AddSheetMode>('menu');
+  const addSnapPoints = useMemo(
+    () => (addSheetMode === 'menu' ? ['42%'] : ['85%']),
+    [addSheetMode]
   );
+  const [availabilityDay, setAvailabilityDay] = useState(1);
+  const [availabilityStart, setAvailabilityStart] = useState('09:00');
+  const [availabilityEnd, setAvailabilityEnd] = useState('17:00');
+  const [availabilityTimezone] = useState(getDeviceTimezone);
+  const [createDoctorAvailability, { loading: creatingAvailability }] =
+    Hooks.useCreateDoctorAvailabilityMutation();
+  const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<Appointment | null>(null);
   const today = useMemo(() => stripTime(new Date()), []);
   const todayWeekStart = useMemo(() => startOfWeekSunday(today), [today]);
 
@@ -233,12 +476,12 @@ export default function ScheduleScreen() {
 
   const visibleWeekStart = useMemo(
     () => addDays(todayWeekStart, (weekListIndex - WEEKS_RADIUS) * 7),
-    [todayWeekStart, weekListIndex],
+    [todayWeekStart, weekListIndex]
   );
 
   const monthLabel = useMemo(
     () => formatMonthYearForWeek(visibleWeekStart),
-    [visibleWeekStart],
+    [visibleWeekStart]
   );
 
   /** When the visible week changes (swipe or chevron), keep the same weekday in the new week. */
@@ -266,7 +509,7 @@ export default function ScheduleScreen() {
       const clamped = Math.max(0, Math.min(WEEK_COUNT - 1, next));
       setWeekListIndex(clamped);
     },
-    [],
+    []
   );
 
   const renderWeekPage = useCallback(
@@ -292,7 +535,7 @@ export default function ScheduleScreen() {
         </View>
       );
     },
-    [selectedDate, theme.textPrimary, todayWeekStart],
+    [selectedDate, theme.textPrimary, todayWeekStart]
   );
 
   const visibleAppointments = useMemo(() => {
@@ -320,6 +563,104 @@ export default function ScheduleScreen() {
     detailsSheetRef.current?.close();
   }, []);
 
+  const resetAvailabilityForm = useCallback((dayOfWeek: number) => {
+    setAvailabilityDay(dayOfWeek);
+    setAvailabilityStart('09:00');
+    setAvailabilityEnd('17:00');
+  }, []);
+
+  const closeAddSheet = useCallback(() => {
+    addSheetRef.current?.close();
+  }, []);
+
+  const openAvailabilityForm = useCallback(() => {
+    resetAvailabilityForm(selectedDate.getDay());
+    setAddSheetMode('availability');
+    requestAnimationFrame(() => {
+      addSheetRef.current?.snapToIndex(0);
+    });
+  }, [resetAvailabilityForm, selectedDate]);
+
+  const backToAddMenu = useCallback(() => {
+    setAddSheetMode('menu');
+    requestAnimationFrame(() => {
+      addSheetRef.current?.snapToIndex(0);
+    });
+  }, []);
+
+  const onAddSheetChange = useCallback((index: number) => {
+    if (index === -1) {
+      setAddSheetMode('menu');
+    }
+  }, []);
+
+  const onAddSheetAction = useCallback(
+    (actionId: (typeof ADD_SHEET_ACTIONS)[number]['id']) => {
+      if (actionId === 'availability') {
+        openAvailabilityForm();
+        return;
+      }
+      closeAddSheet();
+    },
+    [closeAddSheet, openAvailabilityForm]
+  );
+
+  const submitAvailability = useCallback(async () => {
+    const startTime = availabilityStart.trim();
+    const endTime = availabilityEnd.trim();
+
+    if (!TIME_24H_PATTERN.test(startTime) || !TIME_24H_PATTERN.test(endTime)) {
+      showMessage({
+        message: 'Invalid time',
+        description: 'Use 24-hour format, e.g. 09:00 or 17:30.',
+        type: 'warning',
+      });
+      return;
+    }
+
+    if (startTime >= endTime) {
+      showMessage({
+        message: 'Invalid range',
+        description: 'End time must be after start time.',
+        type: 'warning',
+      });
+      return;
+    }
+
+    try {
+      await createDoctorAvailability({
+        variables: {
+          createDoctorAvailabilityInput: {
+            dayOfWeek: availabilityDay,
+            startTime,
+            endTime,
+            timezone: availabilityTimezone,
+          },
+        },
+      });
+      showMessage({
+        message: 'Availability saved',
+        description: 'Your weekly hours have been updated.',
+        type: 'success',
+      });
+      closeAddSheet();
+      setAddSheetMode('menu');
+    } catch {
+      showMessage({
+        message: 'Could not save availability',
+        description: 'Please try again in a moment.',
+        type: 'danger',
+      });
+    }
+  }, [
+    availabilityDay,
+    availabilityEnd,
+    availabilityStart,
+    availabilityTimezone,
+    closeAddSheet,
+    createDoctorAvailability,
+  ]);
+
   const renderBackdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
       <BottomSheetBackdrop
@@ -327,7 +668,7 @@ export default function ScheduleScreen() {
         appearsOnIndex={0}
         disappearsOnIndex={-1}
         opacity={0.5}
-        pressBehavior="close"
+        pressBehavior='close'
       />
     ),
     []
@@ -343,171 +684,366 @@ export default function ScheduleScreen() {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled>
-        <Text style={[styles.title, { color: theme.textPrimary }]}>Schedule</Text>
-
-        <View style={styles.monthRow}>
-          <Pressable
-            style={[styles.arrowBtn, { backgroundColor: theme.card }]}
-            onPress={() => scrollToWeekIndex(weekListIndex - 1, true)}>
-            <Ionicons name="chevron-back" size={22} color={theme.textSecondary} />
-          </Pressable>
-          <Text style={[styles.monthLabel, { color: '#667085' }]}>
-            {monthLabel}
+          <Text style={[styles.title, { color: theme.textPrimary }]}>
+            Schedule
           </Text>
-          <Pressable
-            style={[styles.arrowBtn, { backgroundColor: theme.card }]}
-            onPress={() => scrollToWeekIndex(weekListIndex + 1, true)}>
-            <Ionicons
-              name="chevron-forward"
-              size={22}
-              color={theme.textSecondary}
-            />
-          </Pressable>
-        </View>
 
-        <FlatList
-          ref={weekListRef}
-          data={WEEK_INDEXES}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => String(item)}
-          renderItem={renderWeekPage}
-          getItemLayout={(_, index) => ({
-            length: PAGE_WIDTH,
-            offset: PAGE_WIDTH * index,
-            index,
-          })}
-          initialScrollIndex={WEEKS_RADIUS}
-          onMomentumScrollEnd={onWeekScrollEnd}
-          extraData={selectedDate}
-          style={styles.weekList}
-          contentContainerStyle={styles.weekListContent}
-        />
+          <View style={styles.monthRow}>
+            <Pressable
+              style={[styles.arrowBtn, { backgroundColor: theme.card }]}
+              onPress={() => scrollToWeekIndex(weekListIndex - 1, true)}>
+              <Ionicons
+                name='chevron-back'
+                size={22}
+                color={theme.textSecondary}
+              />
+            </Pressable>
+            <Text style={[styles.monthLabel, { color: '#667085' }]}>
+              {monthLabel}
+            </Text>
+            <Pressable
+              style={[styles.arrowBtn, { backgroundColor: theme.card }]}
+              onPress={() => scrollToWeekIndex(weekListIndex + 1, true)}>
+              <Ionicons
+                name='chevron-forward'
+                size={22}
+                color={theme.textSecondary}
+              />
+            </Pressable>
+          </View>
 
-        <View style={styles.filters}>
-          <Pressable
-            onPress={() => setActiveFilter('all')}
-            style={styles.filterBtn}>
-            <View style={styles.filterRow}>
+          <FlatList
+            ref={weekListRef}
+            data={WEEK_INDEXES}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => String(item)}
+            renderItem={renderWeekPage}
+            getItemLayout={(_, index) => ({
+              length: PAGE_WIDTH,
+              offset: PAGE_WIDTH * index,
+              index,
+            })}
+            initialScrollIndex={WEEKS_RADIUS}
+            onMomentumScrollEnd={onWeekScrollEnd}
+            extraData={selectedDate}
+            style={styles.weekList}
+            contentContainerStyle={styles.weekListContent}
+          />
+
+          <View style={styles.filters}>
+            <Pressable
+              onPress={() => setActiveFilter('all')}
+              style={styles.filterBtn}>
+              <View style={styles.filterRow}>
+                <Text
+                  style={[
+                    styles.filterText,
+                    {
+                      color: activeFilter === 'all' ? theme.accent : '#98A2B3',
+                    },
+                  ]}>
+                  All
+                </Text>
+                <View style={styles.countBadge}>
+                  <Text style={styles.countBadgeText}>{allCount}</Text>
+                </View>
+              </View>
+              <View
+                style={[
+                  styles.filterUnderline,
+                  {
+                    backgroundColor:
+                      activeFilter === 'all' ? theme.accent : 'transparent',
+                  },
+                ]}
+              />
+            </Pressable>
+
+            <Pressable
+              onPress={() => setActiveFilter('upcoming')}
+              style={styles.filterBtn}>
               <Text
                 style={[
                   styles.filterText,
-                  { color: activeFilter === 'all' ? theme.accent : '#98A2B3' },
+                  {
+                    color:
+                      activeFilter === 'upcoming' ? theme.accent : '#98A2B3',
+                  },
                 ]}>
-                All
+                Upcoming
               </Text>
-              <View style={styles.countBadge}>
-                <Text style={styles.countBadgeText}>{allCount}</Text>
-              </View>
-            </View>
-            <View
-              style={[
-                styles.filterUnderline,
-                {
-                  backgroundColor:
-                    activeFilter === 'all' ? theme.accent : 'transparent',
-                },
-              ]}
-            />
-          </Pressable>
+              <View
+                style={[
+                  styles.filterUnderline,
+                  {
+                    backgroundColor:
+                      activeFilter === 'upcoming'
+                        ? theme.accent
+                        : 'transparent',
+                  },
+                ]}
+              />
+            </Pressable>
 
-          <Pressable
-            onPress={() => setActiveFilter('upcoming')}
-            style={styles.filterBtn}>
-            <Text
-              style={[
-                styles.filterText,
-                { color: activeFilter === 'upcoming' ? theme.accent : '#98A2B3' },
-              ]}>
-              Upcoming
-            </Text>
-            <View
-              style={[
-                styles.filterUnderline,
-                {
-                  backgroundColor:
-                    activeFilter === 'upcoming' ? theme.accent : 'transparent',
-                },
-              ]}
-            />
-          </Pressable>
+            <Pressable
+              onPress={() => setActiveFilter('pending')}
+              style={styles.filterBtn}>
+              <Text
+                style={[
+                  styles.filterText,
+                  {
+                    color:
+                      activeFilter === 'pending' ? theme.accent : '#98A2B3',
+                  },
+                ]}>
+                Pending
+              </Text>
+              <View
+                style={[
+                  styles.filterUnderline,
+                  {
+                    backgroundColor:
+                      activeFilter === 'pending' ? theme.accent : 'transparent',
+                  },
+                ]}
+              />
+            </Pressable>
+          </View>
 
-          <Pressable
-            onPress={() => setActiveFilter('pending')}
-            style={styles.filterBtn}>
-            <Text
-              style={[
-                styles.filterText,
-                { color: activeFilter === 'pending' ? theme.accent : '#98A2B3' },
-              ]}>
-              Pending
-            </Text>
-            <View
-              style={[
-                styles.filterUnderline,
-                {
-                  backgroundColor:
-                    activeFilter === 'pending' ? theme.accent : 'transparent',
-                },
-              ]}
-            />
-          </Pressable>
-        </View>
-
-        <View style={styles.cardsWrap}>
-          {visibleAppointments.map((item) => (
-            <View key={item.id} style={[styles.card, { backgroundColor: theme.card }]}>
-              <View style={styles.cardHeader}>
-                <Text style={[styles.patientName, { color: theme.textPrimary }]}>
-                  {item.patient}
-                </Text>
-                <View
-                  style={[
-                    styles.statusPill,
-                    item.status === 'Pending' ? styles.pendingPill : styles.upcomingPill,
-                  ]}>
+          <View style={styles.cardsWrap}>
+            {visibleAppointments.map((item) => (
+              <View
+                key={item.id}
+                style={[styles.card, { backgroundColor: theme.card }]}>
+                <View style={styles.cardHeader}>
                   <Text
+                    style={[styles.patientName, { color: theme.textPrimary }]}>
+                    {item.patient}
+                  </Text>
+                  <View
                     style={[
-                      styles.statusPillText,
+                      styles.statusPill,
                       item.status === 'Pending'
-                        ? styles.pendingPillText
-                        : styles.upcomingPillText,
+                        ? styles.pendingPill
+                        : styles.upcomingPill,
                     ]}>
-                    {item.status}
-                  </Text>
+                    <Text
+                      style={[
+                        styles.statusPillText,
+                        item.status === 'Pending'
+                          ? styles.pendingPillText
+                          : styles.upcomingPillText,
+                      ]}>
+                      {item.status}
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              <View style={styles.metaRow}>
-                <Text style={[styles.timeText, { color: '#667085' }]}>{item.time}</Text>
-                <View
-                  style={[
-                    styles.tagPill,
-                    { backgroundColor: tagToneStyles[item.tagTone].bg },
-                  ]}>
-                  <Text style={[styles.tagText, { color: tagToneStyles[item.tagTone].text }]}>
-                    {item.tag}
+                <View style={styles.metaRow}>
+                  <Text style={[styles.timeText, { color: '#667085' }]}>
+                    {item.time}
                   </Text>
+                  <View
+                    style={[
+                      styles.tagPill,
+                      { backgroundColor: tagToneStyles[item.tagTone].bg },
+                    ]}>
+                    <Text
+                      style={[
+                        styles.tagText,
+                        { color: tagToneStyles[item.tagTone].text },
+                      ]}>
+                      {item.tag}
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              <Text style={[styles.conditionText, { color: '#98A2B3' }]}>
-                {item.condition}
-              </Text>
-
-              <Pressable
-                onPress={() => openAppointmentDetails(item)}
-                style={[styles.detailsBtn, { borderColor: theme.accent }]}>
-                <Text style={[styles.detailsBtnText, { color: theme.accent }]}>
-                  View Details
+                <Text style={[styles.conditionText, { color: '#98A2B3' }]}>
+                  {item.condition}
                 </Text>
-              </Pressable>
-            </View>
-          ))}
-        </View>
+
+                <Pressable
+                  onPress={() => openAppointmentDetails(item)}
+                  style={[styles.detailsBtn, { borderColor: theme.accent }]}>
+                  <Text
+                    style={[styles.detailsBtnText, { color: theme.accent }]}>
+                    View Details
+                  </Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
         </ScrollView>
       </SafeAreaView>
+
+      <BottomSheet
+        ref={addSheetRef}
+        index={-1}
+        snapPoints={addSnapPoints}
+        enablePanDownToClose
+        backdropComponent={renderBackdrop}
+        backgroundStyle={styles.sheetBackground}
+        handleIndicatorStyle={styles.sheetHandle}
+        onChange={onAddSheetChange}>
+        {addSheetMode === 'menu' ? (
+          <BottomSheetView style={styles.addSheetContent}>
+            <Text style={[styles.addSheetTitle, { color: theme.textPrimary }]}>
+              Add to schedule
+            </Text>
+            {ADD_SHEET_ACTIONS.map((action) => (
+              <Pressable
+                key={action.id}
+                onPress={() => onAddSheetAction(action.id)}
+                style={[styles.addSheetRow, { backgroundColor: theme.card }]}>
+                <View
+                  style={[
+                    styles.addSheetIconWrap,
+                    { backgroundColor: `${theme.accent}22` },
+                  ]}>
+                  <Ionicons name={action.icon} size={22} color={theme.accent} />
+                </View>
+                <View style={styles.addSheetRowText}>
+                  <Text
+                    style={[
+                      styles.addSheetRowLabel,
+                      { color: theme.textPrimary },
+                    ]}>
+                    {action.label}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.addSheetRowSub,
+                      { color: theme.textSecondary },
+                    ]}>
+                    {action.subtitle}
+                  </Text>
+                </View>
+                <Ionicons
+                  name='chevron-forward'
+                  size={20}
+                  color={theme.textMuted}
+                />
+              </Pressable>
+            ))}
+          </BottomSheetView>
+        ) : (
+          <BottomSheetScrollView
+            contentContainerStyle={styles.availabilitySheetContent}
+            keyboardShouldPersistTaps='handled'
+            showsVerticalScrollIndicator={false}>
+            <View style={styles.availabilityHeader}>
+              <Pressable
+                onPress={backToAddMenu}
+                style={[
+                  styles.availabilityBackBtn,
+                  { backgroundColor: theme.card },
+                ]}
+                accessibilityRole='button'
+                accessibilityLabel='Back'>
+                <Ionicons
+                  name='chevron-back'
+                  size={22}
+                  color={theme.textSecondary}
+                />
+              </Pressable>
+              <Text
+                style={[styles.addSheetTitle, { color: theme.textPrimary }]}>
+                Set availability
+              </Text>
+              <View style={styles.availabilityHeaderSpacer} />
+            </View>
+
+            <Text
+              style={[
+                styles.availabilitySectionLabel,
+                { color: theme.textSecondary },
+              ]}>
+              Day of week
+            </Text>
+            <View style={styles.dayChipRow}>
+              {AVAILABILITY_DAY_OPTIONS.map((day) => {
+                const selected = availabilityDay === day.value;
+                return (
+                  <Pressable
+                    key={day.value}
+                    onPress={() => setAvailabilityDay(day.value)}
+                    style={[
+                      styles.dayChip,
+                      {
+                        backgroundColor: selected ? theme.accent : theme.card,
+                        borderColor: selected ? theme.accent : '#D0D5DD',
+                      },
+                    ]}>
+                    <Text
+                      style={[
+                        styles.dayChipText,
+                        { color: selected ? '#FFFFFF' : theme.textPrimary },
+                      ]}>
+                      {day.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <TimeWheelPicker
+              label='Start time'
+              value={availabilityStart}
+              onChange={setAvailabilityStart}
+              accent={theme.accent}
+              textColor={theme.textPrimary}
+              labelColor={theme.textSecondary}
+              cardColor={theme.card}
+            />
+            <TimeWheelPicker
+              label='End time'
+              value={availabilityEnd}
+              onChange={setAvailabilityEnd}
+              accent={theme.accent}
+              textColor={theme.textPrimary}
+              labelColor={theme.textSecondary}
+              cardColor={theme.card}
+            />
+
+            <Text
+              style={[
+                styles.availabilitySectionLabel,
+                { color: theme.textSecondary },
+              ]}>
+              Timezone
+            </Text>
+            <View
+              style={[
+                styles.timezoneField,
+                { backgroundColor: theme.card, borderColor: '#C3CEDB' },
+              ]}>
+              <Ionicons
+                name='globe-outline'
+                size={18}
+                color={theme.textMuted}
+              />
+              <Text style={[styles.timezoneText, { color: theme.textPrimary }]}>
+                {availabilityTimezone}
+              </Text>
+            </View>
+
+            <Button
+              theme={theme}
+              label={creatingAvailability ? 'Saving…' : 'Save availability'}
+              onPress={submitAvailability}
+              disabled={creatingAvailability}
+              style={styles.saveAvailabilityBtn}
+              leftIcon={
+                creatingAvailability ? (
+                  <ActivityIndicator size='small' color='#FFFFFF' />
+                ) : undefined
+              }
+            />
+          </BottomSheetScrollView>
+        )}
+      </BottomSheet>
 
       <BottomSheet
         ref={detailsSheetRef}
@@ -526,7 +1062,7 @@ export default function ScheduleScreen() {
 
           <View style={styles.sheetPatientRow}>
             <View style={styles.sheetAvatar}>
-              <Ionicons name="person" size={18} color="#64748B" />
+              <Ionicons name='person' size={18} color='#64748B' />
             </View>
             <View style={styles.sheetPatientInfo}>
               <Text style={styles.sheetPatientName}>
@@ -545,11 +1081,11 @@ export default function ScheduleScreen() {
 
           <View style={styles.sheetDateRow}>
             <View style={styles.sheetDateTimeCell}>
-              <Ionicons name="calendar-outline" size={16} color="#1492FF" />
+              <Ionicons name='calendar-outline' size={16} color='#1492FF' />
               <Text style={styles.sheetDateTimeText}>Monday Dec 2</Text>
             </View>
             <View style={styles.sheetDateTimeCell}>
-              <Ionicons name="time-outline" size={16} color="#22C55E" />
+              <Ionicons name='time-outline' size={16} color='#22C55E' />
               <Text style={styles.sheetDateTimeText}>
                 {selectedAppointment?.time ?? '10:30 AM'}
               </Text>
@@ -563,7 +1099,7 @@ export default function ScheduleScreen() {
 
           <Text style={styles.sheetSectionTitle}>Documents</Text>
           <View style={styles.sheetDocumentCard}>
-            <Ionicons name="document-text-outline" size={30} color="#94A3B8" />
+            <Ionicons name='document-text-outline' size={30} color='#94A3B8' />
             <View>
               <Text style={styles.sheetDocumentName}>
                 {selectedAppointment?.documentName ?? 'Document.pdf'}
@@ -577,7 +1113,9 @@ export default function ScheduleScreen() {
           <Pressable style={styles.acceptBtn}>
             <Text style={styles.acceptBtnText}>Accept Appointment</Text>
           </Pressable>
-          <Pressable onPress={closeAppointmentDetails} style={styles.declineBtn}>
+          <Pressable
+            onPress={closeAppointmentDetails}
+            style={styles.declineBtn}>
             <Text style={styles.declineBtnText}>Decline Appointment</Text>
           </Pressable>
         </ScrollView>
@@ -591,7 +1129,191 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: {
     paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  addSheetContent: {
+    paddingHorizontal: 16,
     paddingBottom: 28,
+    gap: 10,
+  },
+  addSheetTitle: {
+    fontSize: 18,
+    lineHeight: 26,
+    fontFamily: fonts.semiBold,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  addSheetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 12,
+    gap: 12,
+  },
+  addSheetIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addSheetRowText: {
+    flex: 1,
+    gap: 2,
+  },
+  addSheetRowLabel: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontFamily: fonts.semiBold,
+  },
+  addSheetRowSub: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: fonts.regular,
+  },
+  availabilitySheetContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+  },
+  availabilityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  availabilityBackBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  availabilityHeaderSpacer: {
+    width: 40,
+  },
+  availabilitySectionLabel: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: fonts.medium,
+    marginBottom: 8,
+  },
+  dayChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 18,
+  },
+  dayChip: {
+    minWidth: 44,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  dayChipText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: fonts.semiBold,
+  },
+  timePickerBlock: {
+    marginBottom: 16,
+  },
+  timePickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  timePickerLabel: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: fonts.medium,
+  },
+  timePickerBadge: {
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  timePickerBadgeText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: fonts.semiBold,
+  },
+  timeWheelCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#C3CEDB',
+    overflow: 'hidden',
+  },
+  timeWheelColumnHeaders: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  timeWheelColHeader: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 11,
+    lineHeight: 14,
+    fontFamily: fonts.medium,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  timeWheelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  timeWheel: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  timeWheelColon: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontFamily: fonts.semiBold,
+    marginHorizontal: 2,
+    marginBottom: 2,
+  },
+  timeWheelDivider: {
+    width: 1,
+    height: 80,
+    marginHorizontal: 4,
+  },
+  timeWheelPeriod: {
+    width: 64,
+    backgroundColor: 'transparent',
+  },
+  timeWheelSelectionHighlight: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    backgroundColor: 'transparent',
+  },
+  timezoneField: {
+    minHeight: 52,
+    borderWidth: 1,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    marginBottom: 20,
+  },
+  timezoneText: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 22,
+    fontFamily: fonts.medium,
+  },
+  saveAvailabilityBtn: {
+    borderRadius: 24,
+    minHeight: 48,
   },
   title: {
     fontSize: 20,
@@ -638,12 +1360,10 @@ const styles = StyleSheet.create({
     gap: 2,
     overflow: 'hidden',
   },
-  dayCellFill: {
-
-  },
+  dayCellFill: {},
   weekText: {
     fontSize: 12,
-    paddingTop:6,
+    paddingTop: 6,
     lineHeight: 18,
     fontFamily: fonts.medium,
   },
@@ -651,7 +1371,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 40,
     fontFamily: fonts.semiBold,
-    fontWeight: "500",
+    fontWeight: '500',
   },
   filters: {
     flexDirection: 'row',
@@ -714,7 +1434,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 40,
     fontFamily: fonts.semiBold,
-    color: "#0F172A"
+    color: '#0F172A',
   },
   statusPill: {
     borderWidth: 0.6,
@@ -734,7 +1454,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 18,
     fontFamily: fonts.medium,
-    color: "#20BEB8"
+    color: '#20BEB8',
   },
   upcomingPillText: { color: '#20BEB8' },
   pendingPillText: { color: '#D99700' },
@@ -748,7 +1468,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontFamily: fonts.medium,
-    fontWeight: "400",
+    fontWeight: '400',
   },
   tagPill: {
     borderRadius: 6,
@@ -763,7 +1483,7 @@ const styles = StyleSheet.create({
   conditionText: {
     fontSize: 14,
     lineHeight: 40,
-    fontWeight: "400",
+    fontWeight: '400',
     fontFamily: fonts.regular,
     marginBottom: 14,
   },
@@ -773,7 +1493,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderColor: "#4CCBC6"
+    borderColor: '#4CCBC6',
   },
   detailsBtnText: {
     fontSize: 14,

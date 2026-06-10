@@ -8,10 +8,19 @@ import {
 import { useColorScheme } from '@repo/ui/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useCallback, useMemo, useRef } from 'react';
-
+import {
+  Types,
+  useAppointments,
+  useDoctor,
+  useDoctorReviews,
+  type DoctorAppointment,
+  type DoctorProfile,
+  type DoctorReviewItem,
+} from '@repo/ui/graphql';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import {
+  ActivityIndicator,
   Image,
   Pressable,
   ScrollView,
@@ -23,110 +32,31 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { appointmentTime, recordRecord, notifications } from '@/config/svg';
 
 import { SvgXml } from 'react-native-svg';
-const MOCK_DOCTOR_NAME = 'Dr Zenifer Aniston';
 
-const SCHEDULE_ITEMS = [
-  {
-    id: '1',
-    name: 'John Doe',
-    time: '09:30 AM',
-    tag: 'Video consultation',
-    tagTone: 'orange' as const,
-    action: 'Start call',
-  },
-  {
-    id: '2',
-    name: 'Alice Smith',
-    time: '10:15 AM',
-    tag: 'Follow-up',
-    tagTone: 'blue' as const,
-    action: 'Start',
-  },
-  {
-    id: '3',
-    name: 'Robert Brown',
-    time: '11:00 AM',
-    tag: 'New patient',
-    tagTone: 'green' as const,
-    action: 'Start',
-  },
-];
+const ACTIVE_APPOINTMENT_STATUSES = new Set([
+  Types.AppointmentStatus.Scheduled,
+  Types.AppointmentStatus.Confirmed,
+  Types.AppointmentStatus.Pending,
+  Types.AppointmentStatus.InProgress,
+  Types.AppointmentStatus.Rescheduled,
+]);
 
-const REVIEWS = [
-  {
-    id: '1',
-    name: 'Emma Wilson',
-    when: 'Yesterday',
-    rating: 5,
-    text: 'Very professional and thorough consultation. Highly recommended!',
-  },
-  {
-    id: '2',
-    name: 'James Chen',
-    when: '2 days ago',
-    rating: 4,
-    text: 'Clear explanations and great bedside manner.',
-  },
-];
+type ScheduleRow = {
+  id: string;
+  name: string;
+  time: string;
+  tag: string;
+  tagTone: 'orange' | 'blue' | 'green';
+  action: string;
+};
 
-const APPOINTMENT_SHEET_ITEMS = [
-  {
-    id: 'p1',
-    name: 'Alice Smith',
-    time: '09:15 AM',
-    tag: 'Follow-up',
-    tagTone: 'blue' as const,
-  },
-  {
-    id: 'p2',
-    name: 'John Doe',
-    time: '09:30 AM',
-    tag: 'Video consultation',
-    tagTone: 'orange' as const,
-  },
-  {
-    id: 'p3',
-    name: 'Alice Smith',
-    time: '09:15 AM',
-    tag: 'Follow-up',
-    tagTone: 'blue' as const,
-  },
-  {
-    id: 'p4',
-    name: 'John Doe',
-    time: '09:30 AM',
-    tag: 'Video consultation',
-    tagTone: 'orange' as const,
-  },
-  {
-    id: 'p5',
-    name: 'Robert Brown',
-    time: '11:00 AM',
-    tag: 'New patient',
-    tagTone: 'green' as const,
-  },
-  {
-    id: 'p6',
-    name: 'Robert Brown',
-    time: '11:00 AM',
-    tag: 'New patient',
-    tagTone: 'green' as const,
-  },
-  {
-    id: 'p7',
-    name: 'John Doe',
-    time: '11:30 AM',
-    tag: 'Video consultation',
-    tagTone: 'orange' as const,
-  },
-  {
-    id: 'p8',
-    name: 'Emma Wilson',
-    time: '12:00 PM',
-    tag: 'Follow-up',
-    tagTone: 'blue' as const,
-  },
-];
+type ReviewRow = {
+  id: string;
+  name: string;
+  when: string;
+  rating: number;
+  text: string;
+};
 
 function StarRow({ rating }: { rating: number }) {
   return (
@@ -143,9 +73,266 @@ function StarRow({ rating }: { rating: number }) {
   );
 }
 
+function formatDoctorDisplayName(doctor: DoctorProfile | null): string {
+  const user = doctor?.user;
+  if (user?.firstName || user?.lastName) {
+    const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
+    return fullName.startsWith('Dr') ? fullName : `Dr ${fullName}`;
+  }
+  return 'Doctor';
+}
+
+function isSameCalendarDay(a: Date, b: Date) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+function startOfDay(date: Date) {
+  const value = new Date(date);
+  value.setHours(0, 0, 0, 0);
+  return value;
+}
+
+function formatAppointmentTime(startDate: string) {
+  const date = new Date(startDate);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+function formatScheduleDateTime(startDate: string, referenceDay: Date) {
+  const date = new Date(startDate);
+  if (Number.isNaN(date.getTime())) return '—';
+  const time = formatAppointmentTime(startDate);
+  if (isSameCalendarDay(date, referenceDay)) return time;
+  const datePart = date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
+  return `${datePart} · ${time}`;
+}
+
+function getPatientName(appointment: DoctorAppointment) {
+  const { firstName, lastName } = appointment.patient.user;
+  return [firstName, lastName].filter(Boolean).join(' ').trim() || 'Patient';
+}
+
+function getAppointmentTag(appointment: DoctorAppointment): {
+  tag: string;
+  tagTone: ScheduleRow['tagTone'];
+} {
+  if (appointment.type === Types.AppointmentType.Instant) {
+    return { tag: 'Instant consultation', tagTone: 'orange' };
+  }
+  if (appointment.isRescheduled) {
+    return { tag: 'Rescheduled', tagTone: 'blue' };
+  }
+  if (appointment.notes?.trim()) {
+    return { tag: appointment.notes.trim(), tagTone: 'green' };
+  }
+  return { tag: 'Scheduled visit', tagTone: 'blue' };
+}
+
+function mapAppointmentToScheduleRow(
+  appointment: DoctorAppointment,
+  referenceDay: Date,
+): ScheduleRow {
+  const { tag, tagTone } = getAppointmentTag(appointment);
+  return {
+    id: appointment.id,
+    name: getPatientName(appointment),
+    time: formatScheduleDateTime(appointment.startDate, referenceDay),
+    tag,
+    tagTone,
+    action: appointment.type === Types.AppointmentType.Instant ? 'Start call' : 'Start',
+  };
+}
+
+function isActiveAppointment(appointment: DoctorAppointment) {
+  return ACTIVE_APPOINTMENT_STATUSES.has(appointment.status);
+}
+
+function isTodayAppointment(appointment: DoctorAppointment, today: Date) {
+  const start = new Date(appointment.startDate);
+  return !Number.isNaN(start.getTime()) && isSameCalendarDay(start, today);
+}
+
+function isUpcomingAppointment(appointment: DoctorAppointment, today: Date) {
+  if (!isActiveAppointment(appointment)) return false;
+  const start = new Date(appointment.startDate);
+  return !Number.isNaN(start.getTime()) && start.getTime() >= startOfDay(today).getTime();
+}
+
+function getReviewPatientName(review: DoctorReviewItem) {
+  const { firstName, lastName } = review.patient.user;
+  return [firstName, lastName].filter(Boolean).join(' ').trim() || 'Patient';
+}
+
+function formatReviewWhen(createdAt: string) {
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return '';
+  const now = new Date();
+  const diffDays = Math.floor(
+    (startOfDay(now).getTime() - startOfDay(date).getTime()) / (1000 * 60 * 60 * 24),
+  );
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function mapReviewToRow(review: DoctorReviewItem): ReviewRow {
+  return {
+    id: review.id,
+    name: getReviewPatientName(review),
+    when: formatReviewWhen(review.createdAt),
+    rating: review.rating,
+    text: review.text?.trim() || 'No review text provided.',
+  };
+}
+
 export default function HomeScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { doctor, loading, error } = useDoctor();
+  const doctorDisplayName = useMemo(() => formatDoctorDisplayName(doctor), [doctor]);
+
+  const {
+    appointments,
+    pageInfo,
+    metaData,
+    loading: appointmentsLoading,
+    error: appointmentsError,
+    data: appointmentsData,
+  } = useAppointments({
+    skip: !doctor?.id,
+    filter: doctor?.id ? { doctorId: doctor.id } : undefined,
+    limit: 20,
+    page: 1,
+  });
+
+  const {
+    reviews,
+    loading: reviewsLoading,
+    error: reviewsError,
+    data: reviewsData,
+  } = useDoctorReviews({
+    doctorId: doctor?.id,
+    skip: !doctor?.id,
+  });
+
+  const reviewRows = useMemo(() => reviews.map(mapReviewToRow), [reviews]);
+
+  useEffect(() => {
+    console.log(
+      '[doctor-home] getDoctor response:\n' +
+        JSON.stringify(
+          {
+            doctor,
+            loading,
+            error: error?.message ?? null,
+          },
+          null,
+          2,
+        ),
+    );
+  }, [doctor, loading, error]);
+
+  useEffect(() => {
+    console.log(
+      '[doctor-home] appointments response:',
+      JSON.stringify(
+        {
+          appointments,
+          pageInfo,
+          metaData,
+          loading: appointmentsLoading,
+          error: appointmentsError?.message ?? null,
+          raw: appointmentsData,
+        },
+        null,
+        2,
+      ),
+    );
+  }, [
+    appointments,
+    pageInfo,
+    metaData,
+    appointmentsLoading,
+    appointmentsError,
+    appointmentsData,
+  ]);
+
+  useEffect(() => {
+    if (!doctor?.id) return;
+    console.log(
+      '[doctor-home] getDoctorReviews response:\n' +
+        JSON.stringify(
+          {
+            doctorId: doctor.id,
+            reviews,
+            loading: reviewsLoading,
+            error: reviewsError?.message ?? null,
+            raw: reviewsData,
+          },
+          null,
+          2,
+        ),
+    );
+  }, [doctor?.id, reviews, reviewsLoading, reviewsError, reviewsData]);
+
+  const today = useMemo(() => new Date(), []);
+
+  const todayScheduleItems = useMemo(
+    () =>
+      appointments
+        .filter((item) => isActiveAppointment(item) && isTodayAppointment(item, today))
+        .sort(
+          (a, b) =>
+            new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+        )
+        .map((item) => mapAppointmentToScheduleRow(item, today)),
+    [appointments, today],
+  );
+
+  const upcomingScheduleItems = useMemo(
+    () =>
+      appointments
+        .filter((item) => isUpcomingAppointment(item, today))
+        .sort(
+          (a, b) =>
+            new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+        )
+        .map((item) => mapAppointmentToScheduleRow(item, today)),
+    [appointments, today],
+  );
+
+  const scheduleItems =
+    todayScheduleItems.length > 0 ? todayScheduleItems : upcomingScheduleItems;
+  const scheduleMode = todayScheduleItems.length > 0 ? 'today' : 'upcoming';
+
+  const appointmentsSummaryLabel = useMemo(() => {
+    if (todayScheduleItems.length > 0) {
+      const count = todayScheduleItems.length;
+      return count === 1 ? '1 appointment today' : `${count} appointments today`;
+    }
+    if (upcomingScheduleItems.length > 0) {
+      const count = upcomingScheduleItems.length;
+      return count === 1 ? '1 upcoming appointment' : `${count} upcoming appointments`;
+    }
+    return 'No upcoming appointments';
+  }, [todayScheduleItems.length, upcomingScheduleItems.length]);
+
   const isDark = useColorScheme() === 'dark';
   const consultationSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ['45%'], []);
@@ -191,7 +378,7 @@ export default function HomeScreen() {
                 Hello!{' '}
               </Text>
                 <Text style={[styles.doctorName, { color: theme.textPrimary }]}>
-                  {MOCK_DOCTOR_NAME}
+                  {doctorDisplayName}
                 </Text>
               
             </View>
@@ -201,7 +388,7 @@ export default function HomeScreen() {
               accessibilityRole="button"
               accessibilityLabel="Notifications"
               onPress={() => router.push('/notifications')}>
-              <SvgXml xml={notifications}/>
+              <SvgXml xml={notifications} width={20} height={20} />
             </Pressable>
           </View>
 
@@ -211,7 +398,7 @@ export default function HomeScreen() {
               style={[styles.quickCard, { backgroundColor: "#EBF6FF" , borderColor:"#99D1FF"}]}
               onPress={openConsultationSheet}>
               <View style={[styles.quickIconCircle, { backgroundColor: "#008CFF"}]}>
-                <SvgXml xml={recordRecord}/>
+                <SvgXml xml={recordRecord} width={20} height={20} />
               </View>
               <View style={styles.quickCardBody}>
                 <Text style={[styles.quickTitle, { color: colorScheme === "dark" ? "#64748B" : "black" }]}>Start Consultation</Text>
@@ -223,11 +410,13 @@ export default function HomeScreen() {
               style={[styles.quickCard, { backgroundColor: "#FCF5FF" , borderColor:"#E099FF" }]}
               onPress={openConsultationSheet}>
               <View style={[styles.quickIconCircle, { backgroundColor: "#AE00FF"}]}>
-                <SvgXml xml={appointmentTime} />
+                <SvgXml xml={appointmentTime} width={20} height={20} />
               </View>
               <View style={styles.quickCardBody}>
                 <Text style={[styles.quickTitle, { color:colorScheme === "dark" ? "#64748B" : "black"}]}>Appointments</Text>
-                <Text style={[styles.quickSub, { color: theme.textSecondary }]}>8 upcoming today</Text>
+                <Text style={[styles.quickSub, { color: theme.textSecondary }]}>
+                  {appointmentsSummaryLabel}
+                </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
             </Pressable>
@@ -236,41 +425,71 @@ export default function HomeScreen() {
           {/* Today's schedule */}
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
-              {"Today's schedule"}
+              {scheduleMode === 'today' ? "Today's schedule" : 'Upcoming appointments'}
             </Text>
-            <Pressable hitSlop={8}>
+            <Pressable
+              hitSlop={8}
+              accessibilityRole='button'
+              accessibilityLabel='See all appointments'
+              onPress={() => router.push('/appointments')}>
               <Text style={[styles.seeAll, { color: theme.accent }]}>See All</Text>
             </Pressable>
           </View>
           <View style={[styles.card, { backgroundColor: theme.card }]}>
-            {SCHEDULE_ITEMS.map((item, index) => (
-              <View
-                key={item.id}
-                style={[
-                  styles.scheduleRow,
-                  index < SCHEDULE_ITEMS.length - 1 && {
-                    borderBottomWidth: StyleSheet.hairlineWidth,
-                    borderBottomColor: theme.divider,
-                  },
-                ]}>
-                <View style={styles.scheduleLeft}>
-                  <Text style={[styles.patientName, { color: theme.textPrimary }]}>{item.name}</Text>
-                  <Text style={[styles.scheduleTime, { color: theme.textSecondary }]}>{item.time}</Text>
-                  <View
-                    style={[
-                      styles.tag,
-                      { backgroundColor: tagColors[item.tagTone].bg },
-                    ]}>
-                    <Text style={[styles.tagText, { color: tagColors[item.tagTone].text }]}>{item.tag}</Text>
-                  </View>
-                </View>
-                <Pressable
-                  style={[styles.outlineBtn, { borderColor: theme.accent }]}
-                  onPress={() => {}}>
-                  <Text style={[styles.outlineBtnText, { color: theme.accent }]}>{item.action}</Text>
-                </Pressable>
+            {appointmentsLoading ? (
+              <View style={styles.scheduleStatus}>
+                <ActivityIndicator size='small' color={theme.accent} />
               </View>
-            ))}
+            ) : appointmentsError ? (
+              <View style={styles.scheduleStatus}>
+                <Text style={[styles.scheduleStatusText, { color: theme.textSecondary }]}>
+                  Unable to load appointments right now.
+                </Text>
+              </View>
+            ) : scheduleItems.length === 0 ? (
+              <View style={styles.scheduleStatus}>
+                <Text style={[styles.scheduleStatusText, { color: theme.textSecondary }]}>
+                  No upcoming appointments.
+                </Text>
+              </View>
+            ) : (
+              scheduleItems.map((item, index) => (
+                <View
+                  key={item.id}
+                  style={[
+                    styles.scheduleRow,
+                    index < scheduleItems.length - 1 && {
+                      borderBottomWidth: StyleSheet.hairlineWidth,
+                      borderBottomColor: theme.divider,
+                    },
+                  ]}>
+                  <View style={styles.scheduleLeft}>
+                    <Text style={[styles.patientName, { color: theme.textPrimary }]}>
+                      {item.name}
+                    </Text>
+                    <Text style={[styles.scheduleTime, { color: theme.textSecondary }]}>
+                      {item.time}
+                    </Text>
+                    <View
+                      style={[
+                        styles.tag,
+                        { backgroundColor: tagColors[item.tagTone].bg },
+                      ]}>
+                      <Text style={[styles.tagText, { color: tagColors[item.tagTone].text }]}>
+                        {item.tag}
+                      </Text>
+                    </View>
+                  </View>
+                  <Pressable
+                    style={[styles.outlineBtn, { borderColor: theme.accent }]}
+                    onPress={() => {}}>
+                    <Text style={[styles.outlineBtnText, { color: theme.accent }]}>
+                      {item.action}
+                    </Text>
+                  </Pressable>
+                </View>
+              ))
+            )}
           </View>
 
           {/* Patient overview */}
@@ -294,18 +513,36 @@ export default function HomeScreen() {
           <Text style={[styles.sectionTitle, styles.sectionTitleSpaced, { color: theme.textPrimary }]}>
             Recent reviews
           </Text>
-          {REVIEWS.map((r) => (
-            <View key={r.id} style={[styles.reviewCard, { backgroundColor: theme.card }]}>
-              <View style={styles.reviewTop}>
-                <View>
-                  <Text style={[styles.reviewName, { color: theme.textPrimary }]}>{r.name}</Text>
-                  <Text style={[styles.reviewWhen, { color: theme.textMuted }]}>{r.when}</Text>
-                </View>
-                <StarRow rating={r.rating} />
-              </View>
-              <Text style={[styles.reviewBody, { color: theme.textSecondary }]}>{r.text}</Text>
+          {reviewsLoading && reviewRows.length === 0 ? (
+            <View style={styles.reviewsStatus}>
+              <ActivityIndicator size='small' color={theme.accent} />
             </View>
-          ))}
+          ) : reviewsError ? (
+            <View style={styles.reviewsStatus}>
+              <Text style={[styles.reviewsStatusText, { color: theme.textSecondary }]}>
+                Unable to load reviews right now.
+              </Text>
+            </View>
+          ) : reviewRows.length === 0 ? (
+            <View style={styles.reviewsStatus}>
+              <Text style={[styles.reviewsStatusText, { color: theme.textSecondary }]}>
+                No reviews yet.
+              </Text>
+            </View>
+          ) : (
+            reviewRows.map((r) => (
+              <View key={r.id} style={[styles.reviewCard, { backgroundColor: theme.card }]}>
+                <View style={styles.reviewTop}>
+                  <View>
+                    <Text style={[styles.reviewName, { color: theme.textPrimary }]}>{r.name}</Text>
+                    <Text style={[styles.reviewWhen, { color: theme.textMuted }]}>{r.when}</Text>
+                  </View>
+                  <StarRow rating={r.rating} />
+                </View>
+                <Text style={[styles.reviewBody, { color: theme.textSecondary }]}>{r.text}</Text>
+              </View>
+            ))
+          )}
         </ScrollView>
       </SafeAreaView>
 
@@ -320,15 +557,20 @@ export default function HomeScreen() {
         <BottomSheetView style={styles.sheetContent}>
           <View style={styles.sheetHeader}>
             <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>
-              {"Today's appointments"}
+              {scheduleMode === 'today' ? "Today's appointments" : 'Upcoming appointments'}
             </Text>
             <View style={styles.sheetCountPill}>
-              <Text style={styles.sheetCountText}>{APPOINTMENT_SHEET_ITEMS.length}</Text>
+              <Text style={styles.sheetCountText}>{scheduleItems.length}</Text>
             </View>
           </View>
 
           <View style={styles.sheetList}>
-            {APPOINTMENT_SHEET_ITEMS.map((item) => (
+            {scheduleItems.length === 0 ? (
+              <Text style={[styles.sheetEmptyText, { color: theme.textSecondary }]}>
+                No upcoming appointments.
+              </Text>
+            ) : null}
+            {scheduleItems.map((item) => (
               <View key={item.id} style={[styles.sheetRow, { backgroundColor: theme.background }]}>
                 <View style={styles.sheetLeft}>
                   <Text style={[styles.sheetPatient, { color: theme.textPrimary }]}>{item.name}</Text>
@@ -479,6 +721,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 12,
   },
+  scheduleStatus: {
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scheduleStatusText: {
+    fontSize: 14,
+    fontFamily: fonts.regular,
+    textAlign: 'center',
+  },
   scheduleLeft: {
     flex: 1,
     gap: 6,
@@ -529,6 +782,16 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 13,
     fontFamily: fonts.regular,
+  },
+  reviewsStatus: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewsStatusText: {
+    fontSize: 14,
+    fontFamily: fonts.regular,
+    textAlign: 'center',
   },
   reviewCard: {
     borderRadius: 16,
@@ -604,6 +867,12 @@ const styles = StyleSheet.create({
   },
   sheetList: {
     gap: 12,
+  },
+  sheetEmptyText: {
+    fontSize: 14,
+    fontFamily: fonts.regular,
+    textAlign: 'center',
+    paddingVertical: 8,
   },
   sheetRow: {
     borderRadius: 12,
