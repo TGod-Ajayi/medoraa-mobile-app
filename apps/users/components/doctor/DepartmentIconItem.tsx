@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
 
 import { useTheme } from '../../config/theme';
+import { SvgXml } from 'react-native-svg';
 
 export type DepartmentIconItemProps = {
   name: string;
@@ -16,19 +17,13 @@ export function DepartmentIconItem({
   backgroundColor,
   onPress,
 }: DepartmentIconItemProps) {
-  const theme = useTheme();
-
+  const colorScheme = useColorScheme();
   const inner = (
     <>
       <View style={[styles.iconWrap, { backgroundColor }]}>
-        <MaterialCommunityIcons
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          name={icon as any}
-          size={28}
-          color={theme.textPrimary}
-        />
+        <SvgXml xml={icon} width={36} height={36}/>
       </View>
-      <Text style={[styles.label, { color: theme.textSecondary }]} numberOfLines={2}>
+      <Text style={[styles.label, { color: colorScheme === "dark" ? "#94A3B8" : "#475569" }]} numberOfLines={2}>
         {name}
       </Text>
     </>
@@ -57,15 +52,16 @@ const styles = StyleSheet.create({
     minWidth: 72,
   },
   iconWrap: {
-    width: 56,
-    height: 56,
+    width: 72,
+    height: 72,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
   },
   label: {
-    fontSize: 11,
+    fontSize: 14,
+    fontWeight: "500",
     textAlign: 'center',
   },
 });

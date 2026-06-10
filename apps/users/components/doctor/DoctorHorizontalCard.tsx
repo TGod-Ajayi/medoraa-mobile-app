@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import type { ImageSourcePropType } from 'react-native';
+import type { GestureResponderEvent, ImageSourcePropType } from 'react-native';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { fonts } from '../../config/fonts';
@@ -12,6 +12,7 @@ export type DoctorHorizontalCardProps = {
   image: ImageSourcePropType;
   online?: boolean;
   favorited?: boolean;
+  onPress?: () => void;
   onToggleFavorite?: () => void;
 };
 
@@ -25,12 +26,26 @@ export function DoctorHorizontalCard({
   image,
   online = true,
   favorited = false,
+  onPress,
   onToggleFavorite,
 }: DoctorHorizontalCardProps) {
   const theme = useTheme();
+  const Container = onPress ? Pressable : View;
+
+  function handleFavoritePress(event: GestureResponderEvent) {
+    event.stopPropagation();
+    onToggleFavorite?.();
+  }
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.divider }]}>
+    <Container
+      style={[styles.card, { backgroundColor: theme.card, borderColor: theme.divider }]}
+      {...(onPress
+        ? {
+            accessibilityRole: 'button' as const,
+            onPress,
+          }
+        : {})}>
       <View style={styles.imageBlock}>
         <Image source={image} style={styles.photo} resizeMode='cover' />
         {online ? (
@@ -50,7 +65,7 @@ export function DoctorHorizontalCard({
             </Text>
           </View>
           {onToggleFavorite ? (
-            <Pressable onPress={onToggleFavorite} hitSlop={8}>
+            <Pressable onPress={handleFavoritePress} hitSlop={8}>
               <Ionicons
                 name={favorited ? 'heart' : 'heart-outline'}
                 size={20}
@@ -64,21 +79,23 @@ export function DoctorHorizontalCard({
           <Text style={[styles.ratingText, { color: theme.textSecondary }]}>{rating}</Text>
         </View>
       </View>
-    </View>
+    </Container>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    width: 200,
+    width: 163,
     borderRadius: 14,
+    height:192,
     marginRight: 12,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
+    padding:8,
   },
   imageBlock: {
-    height: 120,
-    backgroundColor: '#BFDBFE',
+    height: 100,
+    borderRadius: 4,
     position: 'relative',
   },
   photo: {

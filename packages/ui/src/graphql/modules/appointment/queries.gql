@@ -1,0 +1,82 @@
+query GetAppointments($filter: AppointmentFilterInput, $paginationArgs: OffsetPaginationArgs!) {
+  appointments(filter: $filter, paginationArgs: $paginationArgs) {
+    pageInfo {
+      currentPage
+      itemCount
+      itemsPerPage
+      totalItems
+      totalPages
+    }
+    metaData
+    items {
+      id
+      status
+      type
+      startDate
+      endDate
+      createdAt
+      updatedAt
+      isRescheduled
+      paymentStatus
+      notes
+      patient {
+        id
+        user {
+          firstName
+          lastName
+          profilePhoto
+        }
+      }
+      doctor {
+        id
+        user {
+          firstName
+          lastName
+        }
+      }
+    }
+  }
+}
+
+query MyAppointments($statuses: [AppointmentStatus!]) {
+  myAppointments(statuses: $statuses) {
+    id
+    status
+    type
+    startDate
+    endDate
+    createdAt
+    updatedAt
+    isRescheduled
+    paymentStatus
+    notes
+    doctor {
+      id
+      medicalSchool
+      level
+      user {
+        firstName
+        lastName
+        profilePhoto
+      }
+      doctorsSpecialties {
+        specialty {
+          name
+        }
+      }
+    }
+  }
+}
+
+query GetDoctorAvailableTimeSlots($doctorId: ID!) {
+  getDoctorDetails(doctorId: $doctorId) {
+    id
+    doctorTimeSlots {
+      id
+      startDateTime
+      endDateTime
+      slotDate
+      status
+    }
+  }
+}

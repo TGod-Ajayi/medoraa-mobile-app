@@ -1,0 +1,50 @@
+mutation BookAppointment($input: BookAppointmentInput!) {
+  bookAppointment(input: $input) {
+    id
+    status
+    type
+    startDate
+    endDate
+    notes
+    paymentStatus
+    isRescheduled
+    createdAt
+    updatedAt
+    doctor {
+      id
+      medicalSchool
+      level
+      user {
+        firstName
+        lastName
+        profilePhoto
+      }
+      doctorsSpecialties {
+        specialty {
+          name
+        }
+      }
+    }
+    doctorTimeSlot {
+      id
+      startDateTime
+      endDateTime
+    }
+  }
+}
+
+mutation RescheduleAppointment($input: RescheduleAppointmentInput!) {
+  rescheduleAppointment(input: $input) {
+    id
+    status
+    startDate
+    endDate
+    isRescheduled
+    rescheduleReason
+    doctorTimeSlot {
+      id
+      startDateTime
+      endDateTime
+    }
+  }
+}

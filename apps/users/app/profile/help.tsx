@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useActiveFaqItems } from '@repo/ui/graphql';
 import * as WebBrowser from 'expo-web-browser';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   LayoutAnimation,
   Linking,
   Platform,
@@ -23,39 +25,6 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 type HelpTab = 'faq' | 'contact';
-
-const FAQ_ITEMS: { id: string; question: string; answer: string }[] = [
-  {
-    id: '1',
-    question: 'What is Medicare?',
-    answer:
-      'Lorem ipsum dolor sit amet consectetur. Risus quam risus scelerisque eu ipsum.',
-  },
-  {
-    id: '2',
-    question: 'How to use Medicare?',
-    answer:
-      'Lorem ipsum dolor sit amet consectetur. Follow the in-app guide to browse plans and book care.',
-  },
-  {
-    id: '3',
-    question: 'How do I save the recordings?',
-    answer:
-      'Recordings are saved automatically to your account. You can access them from the History tab.',
-  },
-  {
-    id: '4',
-    question: 'How do I cancel an appointment?',
-    answer:
-      'Open Appointments, select the booking, and tap Cancel. Cancellation policies may apply.',
-  },
-  {
-    id: '5',
-    question: 'How do I exit the app?',
-    answer:
-      'Use your device home gesture or app switcher to leave the app. You can sign out from Profile → Security.',
-  },
-];
 
 const PHONE_DISPLAY = '01626-865021';
 const PHONE_TEL = 'tel:+8801626865021';
@@ -183,7 +152,28 @@ function ContactUsTab({ theme }: { theme: AppTheme }) {
 export default function HelpCenterScreen() {
   const theme = useTheme();
   const [tab, setTab] = useState<HelpTab>('faq');
-  const [expandedId, setExpandedId] = useState<string | null>('1');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const { faqItems, loading, error } = useActiveFaqItems({ skip: tab !== 'faq' });
+
+  useEffect(() => {
+    console.log(
+      'getActiveFaqItems response\n' +
+        JSON.stringify(
+          {
+            faqItems,
+            loading,
+            error: error?.message ?? null,
+          },
+          null,
+          2,
+        ),
+    );
+  }, [faqItems, loading, error]);
+
+  useEffect(() => {
+    if (faqItems.length === 0 || expandedId) return;
+    setExpandedId(faqItems[0].id);
+  }, [expandedId, faqItems]);
 
   const toggleFaq = (id: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -247,14 +237,31 @@ export default function HelpCenterScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps='handled'>
-          {FAQ_ITEMS.map((item, index) => {
+          {loading ? (
+            <View style={styles.statusContainer}>
+              <ActivityIndicator size='large' color={theme.accent} />
+            </View>
+          ) : error ? (
+            <View style={styles.statusContainer}>
+              <Text style={[styles.statusText, { color: theme.textSecondary, fontFamily: fonts.regular }]}>
+                Unable to load FAQs right now.
+              </Text>
+            </View>
+          ) : faqItems.length === 0 ? (
+            <View style={styles.statusContainer}>
+              <Text style={[styles.statusText, { color: theme.textSecondary, fontFamily: fonts.regular }]}>
+                No FAQs available yet.
+              </Text>
+            </View>
+          ) : (
+            faqItems.map((item, index) => {
             const open = expandedId === item.id;
             return (
               <View
                 key={item.id}
                 style={[
                   styles.faqCard,
-                  index < FAQ_ITEMS.length - 1 && styles.faqCardSpacing,
+                  index < faqItems.length - 1 && styles.faqCardSpacing,
                   {
                     backgroundColor: theme.card,
                     borderColor: theme.divider,
@@ -285,7 +292,8 @@ export default function HelpCenterScreen() {
                 ) : null}
               </View>
             );
-          })}
+          })
+          )}
         </ScrollView>
       ) : (
         <ContactUsTab theme={theme} />
@@ -319,6 +327,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 32,
+  },
+  statusContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 160,
+    paddingHorizontal: 16,
+  },
+  statusText: {
+    fontSize: 14,
+    textAlign: 'center',
   },
   faqCardSpacing: {
     marginBottom: 12,

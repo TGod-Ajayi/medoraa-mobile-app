@@ -1,0 +1,12 @@
+query GetActiveFaqItems {
+  getActiveFaqItems {
+    id
+    question
+    answer
+    category
+    isActive
+    sortOrder
+    createdAt
+    updatedAt
+  }
+}
