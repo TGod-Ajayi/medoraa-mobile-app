@@ -1,14 +1,30 @@
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  ImageSourcePropType,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   AppointmentListCard,
+  RescheduleAppointmentBottomSheet,
   type AppointmentListStatus,
+  type RescheduleAppointmentTarget,
 } from '../../components/appointment';
 import { ScreenHeader } from '../../components/doctor';
 import { fonts } from '../../config/fonts';
 import { useTheme } from '../../config/theme';
+import {
+  APPOINTMENT_TAB_STATUSES,
+  useMyAppointments,
+  type UserAppointment,
+} from '@repo/ui/graphql';
 
 type TabKey = AppointmentListStatus;
 
@@ -18,69 +34,95 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'cancelled', label: 'Cancelled' },
 ];
 
-type Row = {
-  id: string;
-  doctorName: string;
-  specialty: string;
-  qualifications: string;
-  dateTimeLabel: string;
-  photoUri: string;
-  status: AppointmentListStatus;
-};
+const DEFAULT_DOCTOR_IMAGE = require('../../assets/images/user.png');
 
-const MOCK: Row[] = [
-  {
-    id: '1',
-    doctorName: 'Dr. Akash basak',
-    specialty: 'Cardiology',
-    qualifications: 'MBBS, FCPS(Cardiology)',
-    dateTimeLabel: '15 Oct 2023 | 09:30 PM',
-    photoUri: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=200&h=200&fit=crop',
-    status: 'upcoming',
-  },
-  {
-    id: '2',
-    doctorName: 'Dr. Mizanur',
-    specialty: 'Cardiology',
-    qualifications: 'MBBS, FCPS(Cardiology)',
-    dateTimeLabel: '23 Sept 2023 | 12:30 AM',
-    photoUri: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=200&h=200&fit=crop',
-    status: 'upcoming',
-  },
-  {
-    id: '3',
-    doctorName: 'Dr. Alex Zender',
-    specialty: 'Cardiology',
-    qualifications: 'MBBS, FCPS(Cardiology)',
-    dateTimeLabel: '20 Sept 2023 | 02:30 PM',
-    photoUri: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=200&h=200&fit=crop',
-    status: 'upcoming',
-  },
-  {
-    id: '4',
-    doctorName: 'Dr. Sarah Chen',
-    specialty: 'Neurology',
-    qualifications: 'MBBS, MD(Neurology)',
-    dateTimeLabel: '10 Aug 2023 | 04:00 PM',
-    photoUri: 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=200&h=200&fit=crop',
-    status: 'completed',
-  },
-  {
-    id: '5',
-    doctorName: 'Dr. James Wilson',
-    specialty: 'Dermatology',
-    qualifications: 'MBBS, DDVL',
-    dateTimeLabel: '02 Aug 2023 | 11:00 AM',
-    photoUri: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=200&h=200&fit=crop',
-    status: 'cancelled',
-  },
-];
+function formatAppointmentDateTime(startDate: string) {
+  const date = new Date(startDate);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const datePart = date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  const timePart = date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+  return `${datePart} | ${timePart}`;
+}
+
+function getDoctorName(appointment: UserAppointment) {
+  const { firstName, lastName } = appointment.doctor.user;
+  return `Dr. ${firstName} ${lastName}`.trim();
+}
+
+function getDoctorSpecialty(appointment: UserAppointment) {
+  return (
+    appointment.doctor.doctorsSpecialties?.[0]?.specialty.name ?? 'General'
+  );
+}
+
+function getDoctorQualifications(appointment: UserAppointment) {
+  const parts = [
+    appointment.doctor.medicalSchool,
+    appointment.doctor.level,
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(', ') : '—';
+}
+
+function getDoctorPhoto(appointment: UserAppointment): ImageSourcePropType {
+  return appointment.doctor.user.profilePhoto
+    ? { uri: appointment.doctor.user.profilePhoto }
+    : DEFAULT_DOCTOR_IMAGE;
+}
 
 export default function AppointmentTabScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const [tab, setTab] = useState<TabKey>('upcoming');
 
-  const rows = useMemo(() => MOCK.filter((r) => r.status === tab), [tab]);
+  const statuses = APPOINTMENT_TAB_STATUSES[tab];
+  const { appointments, loading, error, refetch } = useMyAppointments({
+    statuses,
+  });
+  const [rescheduleTarget, setRescheduleTarget] =
+    useState<RescheduleAppointmentTarget | null>(null);
+
+  useEffect(() => {
+    console.log(
+      'myAppointments response\n' +
+        JSON.stringify(
+          {
+            tab,
+            statuses,
+            appointments,
+            loading,
+            error: error?.message ?? null,
+          },
+          null,
+          2
+        )
+    );
+  }, [appointments, error, loading, statuses, tab]);
+
+  const rows = useMemo(
+    () =>
+      appointments.map((appointment) => ({
+        id: appointment.id,
+        doctorId: appointment.doctor.id,
+        doctorName: getDoctorName(appointment),
+        specialty: getDoctorSpecialty(appointment),
+        qualifications: getDoctorQualifications(appointment),
+        dateTimeLabel: formatAppointmentDateTime(appointment.startDate),
+        photoSource: getDoctorPhoto(appointment),
+        status: tab,
+      })),
+    [appointments, tab]
+  );
 
   return (
     <SafeAreaView
@@ -128,7 +170,15 @@ export default function AppointmentTabScreen() {
         </View>
 
         <View style={styles.list}>
-          {rows.length === 0 ? (
+          {loading ? (
+            <View style={styles.statusContainer}>
+              <ActivityIndicator size='small' color={theme.accent} />
+            </View>
+          ) : error ? (
+            <Text style={[styles.empty, { color: theme.textSecondary }]}>
+              Unable to load appointments right now.
+            </Text>
+          ) : rows.length === 0 ? (
             <Text style={[styles.empty, { color: theme.textSecondary }]}>
               No {tab} appointments.
             </Text>
@@ -140,12 +190,31 @@ export default function AppointmentTabScreen() {
                 specialty={row.specialty}
                 qualifications={row.qualifications}
                 dateTimeLabel={row.dateTimeLabel}
-                photoUri={row.photoUri}
+                photoSource={row.photoSource}
                 status={row.status}
                 onCancel={row.status === 'upcoming' ? () => {} : undefined}
-                onReschedule={row.status === 'upcoming' ? () => {} : undefined}
+                onReschedule={
+                  row.status === 'upcoming'
+                    ? () =>
+                        setRescheduleTarget({
+                          appointmentId: row.id,
+                          doctorId: row.doctorId,
+                          doctorName: row.doctorName,
+                          currentDateTimeLabel: row.dateTimeLabel,
+                          specialty: row.specialty,
+                          qualifications: row.qualifications,
+                          photoSource: row.photoSource,
+                        })
+                    : undefined
+                }
                 onSecondaryAction={
-                  row.status !== 'upcoming' ? () => {} : undefined
+                  row.status !== 'upcoming'
+                    ? () =>
+                        router.push({
+                          pathname: '/appointment-details',
+                          params: { id: row.id },
+                        })
+                    : undefined
                 }
                 secondaryLabel={
                   row.status === 'completed'
@@ -159,6 +228,13 @@ export default function AppointmentTabScreen() {
           )}
         </View>
       </ScrollView>
+
+      <RescheduleAppointmentBottomSheet
+        visible={rescheduleTarget != null}
+        target={rescheduleTarget}
+        onClose={() => setRescheduleTarget(null)}
+        onSuccess={() => void refetch()}
+      />
     </SafeAreaView>
   );
 }
@@ -197,6 +273,11 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingTop: 4,
+  },
+  statusContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 120,
   },
   empty: {
     fontSize: 15,

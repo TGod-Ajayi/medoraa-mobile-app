@@ -1,15 +1,15 @@
 import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 
-import { ScreenHeader } from '../components/doctor';
-import { google } from '../config/svg';
-import { fonts } from '../config/fonts';
-import { useTheme } from '../config/theme';
 import { PrimaryCtaButton } from '../components/appointment';
+import { ScreenHeader } from '../components/doctor';
+import { fonts } from '../config/fonts';
+import { google } from '../config/svg';
+import { useTheme } from '../config/theme';
 
 type PaymentMethod = 'paypal' | 'google' | 'apple';
 
@@ -38,10 +38,20 @@ const METHODS: {
 export default function PaymentsScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { doctorId, doctorTimeSlotId } = useLocalSearchParams<{
+    doctorId?: string | string[];
+    doctorTimeSlotId?: string | string[];
+  }>();
+  const resolvedDoctorId = Array.isArray(doctorId) ? doctorId[0] : doctorId;
+  const resolvedDoctorTimeSlotId = Array.isArray(doctorTimeSlotId)
+    ? doctorTimeSlotId[0]
+    : doctorTimeSlotId;
   const [selected, setSelected] = useState<PaymentMethod>('paypal');
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: theme.background }]}
+      edges={['top']}>
       <View style={styles.flex}>
         <View style={styles.content}>
           <ScreenHeader title='Payments' />
@@ -71,7 +81,10 @@ export default function PaymentsScreen() {
                     <Text
                       style={[
                         styles.methodLabel,
-                        { color: theme.textPrimary, fontFamily: fonts.semiBold },
+                        {
+                          color: theme.textPrimary,
+                          fontFamily: fonts.semiBold,
+                        },
                       ]}>
                       {m.label}
                     </Text>
@@ -80,10 +93,17 @@ export default function PaymentsScreen() {
                   <View
                     style={[
                       styles.radioOuter,
-                      { borderColor: isSelected ? theme.accent : theme.divider },
+                      {
+                        borderColor: isSelected ? theme.accent : theme.divider,
+                      },
                     ]}>
                     {isSelected ? (
-                      <View style={[styles.radioInner, { backgroundColor: theme.accent }]} />
+                      <View
+                        style={[
+                          styles.radioInner,
+                          { backgroundColor: theme.accent },
+                        ]}
+                      />
                     ) : null}
                   </View>
                 </Pressable>
@@ -94,7 +114,11 @@ export default function PaymentsScreen() {
           <Pressable
             style={[styles.addNew, { borderColor: theme.accent }]}
             accessibilityRole='button'>
-            <Text style={[styles.addNewLabel, { color: theme.accent, fontFamily: fonts.semiBold }]}>
+            <Text
+              style={[
+                styles.addNewLabel,
+                { color: theme.accent, fontFamily: fonts.semiBold },
+              ]}>
               Add New
             </Text>
           </Pressable>
@@ -103,7 +127,20 @@ export default function PaymentsScreen() {
         <SafeAreaView
           edges={['bottom']}
           style={[styles.footer, { backgroundColor: theme.background }]}>
-          <PrimaryCtaButton label='Pay Now' onPress={() => router.push('/patient-details')} />
+          <PrimaryCtaButton
+            label='Pay Now'
+            onPress={() =>
+              router.push({
+                pathname: '/patient-details',
+                params: {
+                  ...(resolvedDoctorId ? { doctorId: resolvedDoctorId } : {}),
+                  ...(resolvedDoctorTimeSlotId
+                    ? { doctorTimeSlotId: resolvedDoctorTimeSlotId }
+                    : {}),
+                },
+              })
+            }
+          />
         </SafeAreaView>
       </View>
     </SafeAreaView>

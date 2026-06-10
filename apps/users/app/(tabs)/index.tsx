@@ -1,9 +1,10 @@
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { AppTheme } from '../../config/theme';
-import type { ImageSourcePropType } from 'react-native';
+import type { GestureResponderEvent, ImageSourcePropType } from 'react-native';
 import {
+  ActivityIndicator,
   Image,
   Pressable,
   ScrollView,
@@ -16,16 +17,31 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CategoryCard, ProductCard, SectionHeader } from '../../components/home';
+import { LogoutButton } from '../../components/profile';
 import { fonts } from '../../config/fonts';
 import { useTheme } from '../../config/theme';
-import { allergy, brain, child, favourite, favouriteOutline, heart, kidney, pregnacy, stomach, teeth } from '@/config/svg';
+import {
+  allergy,
+  brain,
+  child,
+  favourite,
+  favouriteOutline,
+  heart,
+  kidney,
+  lungs,
+  medical,
+  pregnacy,
+  psycho,
+  stomach,
+  teeth,
+  throat,
+} from '@/config/svg';
+import { useDepartments, useDoctors, useUser } from '@repo/ui/graphql';
 import { SvgXml } from 'react-native-svg';
 
 const doctorone = require('../../assets/images/doctorone.png');
 const doctortwo = require('../../assets/images/doctortwo.png');
 const doctorthree = require('../../assets/images/doctorthree.png');
-const doctorfour = require('../../assets/images/doctorFour.png');
-const doctorfive = require('../../assets/images/doctorFive.png');
 const banner = require('../../assets/images/banner.png');
 const cat1 = require('../../assets/images/cat1.png');
 const cat2 = require('../../assets/images/cat2.png');
@@ -38,19 +54,7 @@ const product4 = require('../../assets/images/product6.png');
 
 const AVATAR =
   'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop';
-
-const SERVICE_IMAGES = [
-  doctorone,
-  doctortwo,
-  doctorthree,
-];
-
-const DOCTOR_PHOTOS = [
-  doctorfour,
-  doctorfive,
-];
-
-
+const DEFAULT_DOCTOR_IMAGE = require('../../assets/images/user.png');
 
 const services = [
   { title: 'Instant Consultation', subtitle: 'Start from $50', image: doctorone, bgColor : "#D2F2F0" },
@@ -140,30 +144,183 @@ const POPULAR_PRODUCTS: {
   },
 ];
 
+function getDisplayName(firstName?: string | null, lastName?: string | null) {
+  return [firstName, lastName].filter((value): value is string => Boolean(value?.trim())).join(' ');
+}
+
+type HomeDoctorListItem = {
+  averageRating: number;
+  doctorsSpecialties?: { specialty: { name: string } }[] | null;
+  id: string;
+  isOnline: boolean;
+  totalReviews: number;
+  user: {
+    firstName: string;
+    lastName: string;
+    profilePhoto?: string | null;
+  };
+};
+
+function getDoctorName(doctor: HomeDoctorListItem) {
+  const fullName = [doctor.user.firstName, doctor.user.lastName]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join(' ');
+
+  return fullName ? `Dr. ${fullName}` : 'Doctor';
+}
+
+function getDoctorSpecialty(doctor: HomeDoctorListItem) {
+  const names =
+    doctor.doctorsSpecialties
+      ?.map((entry) => entry.specialty.name)
+      .filter(Boolean) ?? [];
+
+  return names.length > 0 ? `${names[0]} Specialist` : 'General practice';
+}
+
+function getDoctorRating(doctor: HomeDoctorListItem) {
+  return `${doctor.averageRating.toFixed(1)} (${Math.round(doctor.totalReviews)})`;
+}
+
+function getDoctorImage(doctor: HomeDoctorListItem): ImageSourcePropType {
+  return doctor.user.profilePhoto
+    ? { uri: doctor.user.profilePhoto }
+    : DEFAULT_DOCTOR_IMAGE;
+}
+
+type DepartmentListItem = {
+  code: string;
+  id: string;
+  name: string;
+  sortOrder?: number | null;
+  specialties?: { id: string; name: string }[] | null;
+};
+
+type DepartmentCardData = {
+  bg: string;
+  icon: string;
+  id: string;
+  name: string;
+};
+
+function normalizeLabel(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+}
+
+function getDepartmentUi(department: DepartmentListItem) {
+  const keys = [
+    normalizeLabel(department.code),
+    normalizeLabel(department.name),
+  ];
+
+  if (keys.some((key) => key.includes('neuro'))) {
+    return { icon: brain, bg: '#30BE4533' };
+  }
+  if (keys.some((key) => key.includes('cardio'))) {
+    return { icon: heart, bg: '#FF5B6E33' };
+  }
+  if (keys.some((key) => key.includes('gyn') || key.includes('obstet'))) {
+    return { icon: pregnacy, bg: '#FFBDBC33' };
+  }
+  if (keys.some((key) => key.includes('pedia') || key.includes('child'))) {
+    return { icon: child, bg: '#FC939333' };
+  }
+  if (keys.some((key) => key.includes('allerg'))) {
+    return { icon: allergy, bg: '#34459033' };
+  }
+  if (keys.some((key) => key.includes('dent'))) {
+    return { icon: teeth, bg: '#50BE9F33' };
+  }
+  if (keys.some((key) => key.includes('uro'))) {
+    return { icon: kidney, bg: '#842F3B33' };
+  }
+  if (keys.some((key) => key.includes('gastro') || key.includes('stomach'))) {
+    return { icon: stomach, bg: '#18989133' };
+  }
+  if (keys.some((key) => key.includes('psych'))) {
+    return { icon: psycho, bg: '#34459033' };
+  }
+  if (keys.some((key) => key.includes('onco') || key.includes('pulm'))) {
+    return { icon: lungs, bg: '#842F3B33' };
+  }
+  if (
+    keys.some(
+      (key) =>
+        key === 'ent' ||
+        key.includes('ear nose throat') ||
+        key.includes('otolaryng')
+    )
+  ) {
+    return { icon: throat, bg: '#18989133' };
+  }
+
+  return { icon: medical, bg: '#50BE9F33' };
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { user } = useUser();
+  const {
+    departments,
+    loading: departmentsLoading,
+    error: departmentsError,
+  } = useDepartments();
+  const { doctors, loading: doctorsLoading, error: doctorsError } = useDoctors({
+    limit: 6,
+    page: 1,
+  });
   const [filter, setFilter] = useState(0);
-  const [fav1, setFav1] = useState(false);
   const colorScheme = useColorScheme();
-  const [fav2, setFav2] = useState(true);
+  const [doctorWishlist, setDoctorWishlist] = useState<Record<string, boolean>>({});
   const [productWishlist, setProductWishlist] = useState<Record<string, boolean>>({
     p2: true,
   });
+  const patientName = getDisplayName(user?.firstName, user?.lastName) || 'Patient';
+  const patientAvatar = user?.profilePhoto ? { uri: user.profilePhoto } : { uri: AVATAR };
+  const selectedDoctorFilter = doctorFilters[filter] ?? 'All doctor';
+  const topDoctors = useMemo(() => {
+    const sortedDoctors = [...doctors].sort(
+      (left, right) => right.averageRating - left.averageRating
+    );
 
-  
+    if (selectedDoctorFilter === 'All doctor') {
+      return sortedDoctors;
+    }
 
-  const departments: { name: string; icon: string; bg: string }[] = [
-    { name: 'Neurology', icon: brain, bg: colorScheme == "dark" ? "#30BE4533" : "#30BE4533" },
-    { name: 'Cardiology', icon: heart, bg: colorScheme == "dark" ? "#FF5B6E33" : "#FF5B6E33" },
-    { name: 'Gynecology', icon: pregnacy, bg: colorScheme == "dark" ? "#FFBDBC33" : "#FFBDBC33"},
-    { name: 'Pediatrics', icon: child, bg: colorScheme == "dark" ? "#FC939333" : "#CBE6E7" },
-    { name: 'Allergy', icon: allergy, bg: colorScheme == "dark" ? "#34459033" : "#34459033" },
-    { name: 'Dentist', icon: teeth, bg: colorScheme == "dark" ? "#50BE9F33" : "#50BE9F33"},
-    { name: 'Urology', icon: kidney, bg: colorScheme == "dark" ? "#842F3B33" : "#842F3B33" },
-    { name: 'Gastrology', icon: stomach, bg: colorScheme == "dark" ? "#18989133" : "#18989133" },
-  ];
-  
+    return sortedDoctors.filter((doctor) =>
+      doctor.doctorsSpecialties?.some((entry) =>
+        entry.specialty.name
+          .toLowerCase()
+          .includes(selectedDoctorFilter.toLowerCase())
+      )
+    );
+  }, [doctors, selectedDoctorFilter]);
+
+  useEffect(() => {
+    console.log(
+      'getDepartments response\n' +
+        JSON.stringify(
+          {
+            departments,
+            loading: departmentsLoading,
+            error: departmentsError,
+          },
+          null,
+          2
+        )
+    );
+  }, [departments, departmentsLoading, departmentsError]);
+
+  const departmentCards = useMemo((): DepartmentCardData[] => {
+    return [...departments]
+      .sort((left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0))
+      .map((department) => ({
+        ...getDepartmentUi(department),
+        id: department.id,
+        name: department.name,
+      }));
+  }, [departments]);
 
   return (
     <SafeAreaView
@@ -179,7 +336,7 @@ export default function HomeScreen() {
             style={styles.headerLeft}
             accessibilityRole='button'
             accessibilityLabel='Open profile'>
-            <Image source={{ uri: AVATAR }} style={styles.avatar} />
+            <Image source={patientAvatar} style={styles.avatar} />
             <View>
               <Text style={[styles.hello, { color: theme.textSecondary }]}>
                 Hello!
@@ -189,17 +346,20 @@ export default function HomeScreen() {
                   styles.userName,
                   { color: theme.textPrimary, fontFamily: fonts.semiBold },
                 ]}>
-                Zenifer Aniston
+                {patientName}
               </Text>
             </View>
           </Pressable>
-          <Pressable
-            style={[styles.iconBtn, { backgroundColor: theme.card }]}
-            accessibilityRole='button'
-            accessibilityLabel='Notifications'>
-            <Ionicons name='notifications-outline' size={22} color={theme.textPrimary} />
-            <View style={styles.notifDot} />
-          </Pressable>
+          <View style={styles.headerActions}>
+            <LogoutButton variant='icon' />
+            <Pressable
+              style={[styles.iconBtn, { backgroundColor: theme.card }]}
+              accessibilityRole='button'
+              accessibilityLabel='Notifications'>
+              <Ionicons name='notifications-outline' size={22} color={theme.textPrimary} />
+              <View style={styles.notifDot} />
+            </Pressable>
+          </View>
         </View>
 
         {/* Search */}
@@ -231,7 +391,7 @@ export default function HomeScreen() {
           {services.map((s, i) => (
             <View
               key={s.title}
-              style={[styles.serviceCard, { backgroundColor: colorScheme == "dark" ? "#0F172A" : "#FFFFFF" }]}>
+              style={[styles.serviceCard, { backgroundColor: colorScheme === "dark" ? "#0F172A" : "#FFFFFF" }]}>
                 <View style={[styles.serviceCardImage,{backgroundColor: s.bgColor}]}>
                 <Image
                 source={s.image}
@@ -246,7 +406,7 @@ export default function HomeScreen() {
                 ]}>
                 {s.title}
               </Text>
-              <Text style={[styles.serviceSub, { color: colorScheme == "dark" ? "#94A3B8" : "", textAlign: 'center', fontSize: 10, fontWeight: '600', }]}> 
+              <Text style={[styles.serviceSub, { color: colorScheme === "dark" ? "#94A3B8" : "", textAlign: 'center', fontSize: 10, fontWeight: '600', }]}> 
                 {s.subtitle}
               </Text>
             </View>
@@ -258,7 +418,7 @@ export default function HomeScreen() {
           <Text
             style={[
               styles.sectionTitle,
-              {color: colorScheme == "dark" ? "#FFFFFF" : "#0F172A", fontFamily: "500"},
+              {color: colorScheme === "dark" ? "#FFFFFF" : "#0F172A", fontFamily: "500"},
             ]}>
             Departments
           </Text>
@@ -266,24 +426,47 @@ export default function HomeScreen() {
             <Text style={[styles.seeAll, { color: theme.accent }]}>See All</Text>
           </Pressable>
         </View>
-        <View style={styles.deptGrid}>
-          {departments.map((d) => (
-            <Pressable
-              key={d.name}
-              style={styles.deptItem}
-              accessibilityRole='button'
-              accessibilityLabel={d.name}>
-              <View style={[styles.deptIconWrap, { backgroundColor: d.bg }]}>
-                <SvgXml xml={d.icon} />
-              </View>
-              <Text
-                style={[styles.deptLabel, { color: theme.textSecondary }]}
-                numberOfLines={1}>
-                {d.name}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        {departmentsLoading ? (
+          <View style={styles.departmentStatusContainer}>
+            <ActivityIndicator size='small' color={theme.accent} />
+          </View>
+        ) : departmentsError ? (
+          <View style={styles.departmentStatusContainer}>
+            <Text style={[styles.departmentStatusText, { color: theme.textSecondary }]}>
+              Unable to load departments right now.
+            </Text>
+          </View>
+        ) : departmentCards.length === 0 ? (
+          <View style={styles.departmentStatusContainer}>
+            <Image
+              source={require('../../assets/images/emptyDept.png')}
+              style={styles.departmentEmptyImage}
+              resizeMode='contain'
+            />
+            <Text style={[styles.departmentStatusText, { color: theme.textSecondary }]}>
+              No departments available yet.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.deptGrid}>
+            {departmentCards.map((department) => (
+              <Pressable
+                key={department.id}
+                style={styles.deptItem}
+                accessibilityRole='button'
+                accessibilityLabel={department.name}>
+                <View style={[styles.deptIconWrap, { backgroundColor: department.bg }]}>
+                  <SvgXml xml={department.icon} />
+                </View>
+                <Text
+                  style={[styles.deptLabel, { color: theme.textSecondary }]}
+                  numberOfLines={1}>
+                  {department.name}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
 
         {/* Top doctors */}
         <View style={styles.sectionHeader}>
@@ -294,7 +477,7 @@ export default function HomeScreen() {
             ]}>
             Top rated doctors
           </Text>
-          <Pressable onPress={() => router.push('/make-appointment')}>
+          <Pressable onPress={() => router.push('/doctors-list')}>
             <Text style={[styles.seeAll, { color: theme.accent }]}>See All</Text>
           </Pressable>
         </View>
@@ -335,50 +518,61 @@ export default function HomeScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.doctorCardsRow}
           nestedScrollEnabled>
-          <DoctorCard
-            photo={DOCTOR_PHOTOS[0]}
-            name='Dr. Alex Zender'
-            title='Cardiology Specialist'
-            rating='5.0 (150)'
-            theme={theme}
-            bgColor='#CBE6E7'
-            favorited={fav1}
-            onToggleFav={() => setFav1((v) => !v)}
-            online={false}
-          />
-          <DoctorCard
-            photo={DOCTOR_PHOTOS[1]}
-            name='Dr. Alex Zender'
-            title='Cardiology Specialist'
-            rating='5.0 (150)'
-            bgColor='#C6E4FF'
-            theme={theme}
-            favorited={fav2}
-            onToggleFav={() => setFav2((v) => !v)}
-            online
-          />
-          <DoctorCard
-            photo={DOCTOR_PHOTOS[1]}
-            name='Dr. Alex Zender'
-            title='Cardiology Specialist'
-            rating='5.0 (150)'
-            bgColor='#C6E4FF'
-            theme={theme}
-            favorited={fav2}
-            onToggleFav={() => setFav2((v) => !v)}
-            online
-          />
-          <DoctorCard
-            photo={DOCTOR_PHOTOS[1]}
-            name='Dr. Alex Zender'
-            title='Cardiology Specialist'
-            rating='5.0 (150)'
-            bgColor='#C6E4FF'
-            theme={theme}
-            favorited={fav2}
-            onToggleFav={() => setFav2((v) => !v)}
-            online
-          />
+          {doctorsLoading ? (
+            <View
+              style={[
+                styles.doctorStatusCard,
+                { backgroundColor: colorScheme === "dark" ? "#0F172A" : "#FFFFFF" },
+              ]}>
+              <ActivityIndicator size='large' color={theme.accent} />
+            </View>
+          ) : doctorsError ? (
+            <View
+              style={[
+                styles.doctorStatusCard,
+                { backgroundColor: colorScheme === "dark" ? "#0F172A" : "#FFFFFF" },
+              ]}>
+              <Text style={[styles.doctorStatusText, { color: theme.textSecondary }]}>
+                Unable to load doctors right now.
+              </Text>
+            </View>
+          ) : topDoctors.length === 0 ? (
+            <View
+              style={[
+                styles.doctorStatusCard,
+                { backgroundColor: colorScheme === "dark" ? "#0F172A" : "#FFFFFF" },
+              ]}>
+              <Text style={[styles.doctorStatusText, { color: theme.textSecondary }]}>
+                No doctors available yet.
+              </Text>
+            </View>
+          ) : (
+            topDoctors.map((doctor, index) => (
+              <DoctorCard
+                key={doctor.id}
+                photo={getDoctorImage(doctor)}
+                name={getDoctorName(doctor)}
+                title={getDoctorSpecialty(doctor)}
+                rating={getDoctorRating(doctor)}
+                theme={theme}
+                bgColor={index % 2 === 0 ? '#CBE6E7' : '#C6E4FF'}
+                favorited={!!doctorWishlist[doctor.id]}
+                onPress={() =>
+                  router.push({
+                    pathname: '/doctor-details',
+                    params: { doctorId: doctor.id },
+                  })
+                }
+                onToggleFav={() =>
+                  setDoctorWishlist((prev) => ({
+                    ...prev,
+                    [doctor.id]: !prev[doctor.id],
+                  }))
+                }
+                online={doctor.isOnline}
+              />
+            ))
+          )}
         </ScrollView>
 
         {/* Promo */}
@@ -468,6 +662,7 @@ function DoctorCard({
   theme,
   favorited,
   bgColor,
+  onPress,
   onToggleFav,
   online,
 }: {
@@ -478,12 +673,21 @@ function DoctorCard({
   theme: AppTheme;
   bgColor?: string;
   favorited: boolean;
+  onPress?: () => void;
   onToggleFav: () => void;
   online: boolean;
 }) {
   const colorScheme = useColorScheme();
+
+  function handleFavoritePress(event: GestureResponderEvent) {
+    event.stopPropagation();
+    onToggleFav();
+  }
+
   return (
-    <View style={[styles.docCard, { backgroundColor: colorScheme == "dark" ? "#0F172A" : "#FFFFFF" }]}>
+    <Pressable
+      onPress={onPress}
+      style={[styles.docCard, { backgroundColor: colorScheme === "dark" ? "#0F172A" : "#FFFFFF" }]}>
       <View style={[styles.docPhotoWrap, {backgroundColor: bgColor}]}>
         <Image source={photo} style={styles.docPhoto} />
         {online ? (
@@ -496,7 +700,7 @@ function DoctorCard({
               style={[
                 styles.docName,
                 {
-                  color: colorScheme == "dark" ? "#FFFFFF" : "#0F172A"
+                  color: colorScheme === "dark" ? "#FFFFFF" : "#0F172A"
                 }
               ]}>
               {name}
@@ -512,14 +716,14 @@ function DoctorCard({
             {rating}
           </Text>
         </View>
-        <Pressable onPress={onToggleFav} hitSlop={12}>
+        <Pressable onPress={handleFavoritePress} hitSlop={12}>
           {/* Render SVG strings directly (Ionicons `name` can't take JSX). */}
           <SvgXml xml={favorited ? favourite : favouriteOutline} width={22} height={22} />
           </Pressable>
          </View>
         
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -533,6 +737,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   avatar: { width: 48, height: 48, borderRadius: 24 },
   hello: { fontSize: 13 },
   userName: { fontSize: 18 },
@@ -582,6 +787,22 @@ const styles = StyleSheet.create({
   serviceImage: { width: 67, height: 73, borderRadius: 12 , position: "absolute", bottom:1, marginHorizontal:"auto", left:"17%"},
   serviceTitle: { fontSize: 14, marginTop: 6,  },
   serviceSub: { fontSize: 12, marginTop: 4, },
+  departmentStatusContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 88,
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  departmentEmptyImage: {
+    width: 120,
+    height: 120,
+    marginBottom: 12,
+  },
+  departmentStatusText: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
   deptGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -612,6 +833,18 @@ const styles = StyleSheet.create({
     gap: 14,
     marginBottom: 24,
     paddingRight: 4,
+  },
+  doctorStatusCard: {
+    width: 163,
+    height: 192,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  doctorStatusText: {
+    fontSize: 13,
+    textAlign: 'center',
   },
   docCard: { borderRadius: 16, overflow: 'hidden',  width: 163, height: 192, padding :8},
   docPhotoWrap: { position: 'relative' , width: 147, height: 100, borderRadius: 7},

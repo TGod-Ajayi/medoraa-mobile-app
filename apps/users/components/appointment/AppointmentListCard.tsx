@@ -1,3 +1,4 @@
+import type { ImageSourcePropType } from 'react-native';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { fonts } from '../../config/fonts';
@@ -10,7 +11,7 @@ type Props = {
   specialty: string;
   qualifications: string;
   dateTimeLabel: string;
-  photoUri: string;
+  photoSource: ImageSourcePropType;
   status: AppointmentListStatus;
   onCancel?: () => void;
   onReschedule?: () => void;
@@ -36,7 +37,7 @@ export function AppointmentListCard({
   specialty,
   qualifications,
   dateTimeLabel,
-  photoUri,
+  photoSource,
   status,
   onCancel,
   onReschedule,
@@ -50,7 +51,7 @@ export function AppointmentListCard({
   return (
     <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.divider }]}>
       <View style={styles.topRow}>
-        <Image source={{ uri: photoUri }} style={styles.avatar} />
+        <Image source={photoSource} style={styles.avatar} />
         <View style={styles.info}>
           <View style={styles.titleRow}>
             <View style={styles.nameBlock}>

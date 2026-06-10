@@ -3,6 +3,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AuthGate } from '../../components/auth';
 import {
   appointmentActive,
   appointmentInactive,
@@ -61,6 +62,7 @@ export default function TabsLayout() {
   const tabHeight = 56 + bottomPad;
 
   return (
+    <AuthGate>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -148,6 +150,7 @@ export default function TabsLayout() {
         }}
       />
     </Tabs>
+    </AuthGate>
   );
 }
 

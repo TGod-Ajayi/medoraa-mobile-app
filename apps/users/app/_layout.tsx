@@ -7,6 +7,8 @@ import {
 } from '@react-navigation/native';
 import { gqlClientConnect } from '@repo/ui/graphql';
 import { Stack } from 'expo-router';
+
+import { AuthSessionGuard } from '../components/auth';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -26,6 +28,7 @@ export default function RootLayout() {
           <BottomSheetModalProvider>
             <ThemeProvider
               value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+              <AuthSessionGuard />
               <Stack screenOptions={{ headerShown: false }} />
               <StatusBar style='auto' />
             </ThemeProvider>

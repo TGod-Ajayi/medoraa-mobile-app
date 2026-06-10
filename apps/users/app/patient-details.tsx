@@ -1,8 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
-import { useRouter } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
 import {
+  Types,
+  useDoctorAvailableTimeSlots,
+  useDoctorDetails,
+  useUser,
+} from '@repo/ui/graphql';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,13 +21,18 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Input } from '../components';
 import {
+  BookingContextCard,
+  BookingStepIndicator,
   DatePickerBottomSheet,
   FileUploadCard,
+  PatientInfoSection,
   PrimaryCtaButton,
+  resolveRouteParam,
+  type PatientChoice,
   type UploadFile,
 } from '../components/appointment';
-import { Input } from '../components';
 import { ScreenHeader } from '../components/doctor';
 import { fonts } from '../config/fonts';
 import { useTheme } from '../config/theme';
@@ -34,9 +46,21 @@ const GENDERS: { id: Gender; label: string }[] = [
 ];
 
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
+
+const DEFAULT_AVATAR = require('../assets/images/user.png');
 
 function formatDate(d: Date) {
   return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
@@ -50,22 +74,116 @@ function ageFromDob(d: Date) {
   return age;
 }
 
-const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+function mapApiGender(gender?: Types.GenderTypes | null): Gender {
+  if (gender === Types.GenderTypes.Male) return 'male';
+  if (gender === Types.GenderTypes.Female) return 'female';
+  return 'other';
+}
+
+function parseDateOfBirth(value?: string | null) {
+  if (!value) return new Date(1990, 0, 1);
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? new Date(1990, 0, 1) : parsed;
+}
+
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 export default function PatientDetailsScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const [name, setName] = useState('Akash basak');
-  const [dob, setDob] = useState(new Date(1998, 10, 22)); // 22 Nov 1998
+  const params = useLocalSearchParams<{
+    doctorId?: string | string[];
+    doctorTimeSlotId?: string | string[];
+  }>();
+  const doctorId = resolveRouteParam(params.doctorId);
+  const doctorTimeSlotId = resolveRouteParam(params.doctorTimeSlotId);
+
+  const { user, loading: userLoading } = useUser();
+  const { doctor, loading: doctorLoading } = useDoctorDetails(doctorId, {
+    skip: !doctorId,
+  });
+  const { slots } = useDoctorAvailableTimeSlots({ doctorId, skip: !doctorId });
+
+  const [patientChoice, setPatientChoice] = useState<PatientChoice>('self');
+  const [name, setName] = useState('');
+  const [dob, setDob] = useState(new Date(1990, 0, 1));
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [gender, setGender] = useState<Gender>('male');
   const [problem, setProblem] = useState('');
   const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([]);
+  const [prefilled, setPrefilled] = useState(false);
   const intervalsRef = useRef<Record<string, ReturnType<typeof setInterval>>>({});
 
+  useEffect(() => {
+    if (!doctorId) {
+      router.replace('/doctors-list');
+      return;
+    }
+    if (!doctorTimeSlotId) {
+      router.replace({
+        pathname: '/select-appointment-slot',
+        params: { doctorId },
+      });
+    }
+  }, [doctorId, doctorTimeSlotId, router]);
+
+  useEffect(() => {
+    if (!user || prefilled) return;
+
+    const fullName = [user.firstName, user.lastName]
+      .filter((part) => part?.trim())
+      .join(' ');
+
+    setName(fullName);
+    setDob(parseDateOfBirth(user.dateOfBirth));
+    setGender(mapApiGender(user.gender));
+    setPrefilled(true);
+  }, [prefilled, user]);
+
+  const { doctorName, specialty, photoSource } = useMemo(() => {
+    const specialtyLabel =
+      doctor?.doctorsSpecialties
+        ?.map((entry) => entry.specialty.name)
+        .filter(Boolean)
+        .join(', ') || 'General practice';
+
+    const label = doctor
+      ? (() => {
+          const fullName = [doctor.user.firstName, doctor.user.lastName]
+            .filter((value): value is string => Boolean(value?.trim()))
+            .join(' ');
+          return fullName ? `Dr. ${fullName}` : 'Doctor';
+        })()
+      : 'Doctor';
+
+    const photo = doctor?.user.profilePhoto
+      ? { uri: doctor.user.profilePhoto }
+      : DEFAULT_AVATAR;
+
+    return {
+      doctorName: label,
+      specialty: specialtyLabel,
+      photoSource: photo,
+    };
+  }, [doctor]);
+
+  const selectedSlot = useMemo(
+    () => slots.find((slot) => slot.id === doctorTimeSlotId) ?? null,
+    [doctorTimeSlotId, slots],
+  );
+
+  const patientAvatar = useMemo(() => {
+    if (user?.profilePhoto) return { uri: user.profilePhoto };
+    return DEFAULT_AVATAR;
+  }, [user?.profilePhoto]);
+
+  const patientMeta = `${ageFromDob(dob)} years · ${
+    GENDERS.find((g) => g.id === gender)?.label ?? '—'
+  }`;
+
   const simulateUpload = useCallback((id: string, totalBytes: number) => {
-    const tick = 400; // ms between ticks
-    const increment = tick / ((totalBytes / (100 * 1024)) * 1000); // proportional to ~100KB/s
+    const tick = 400;
+    const increment = tick / ((totalBytes / (100 * 1024)) * 1000);
 
     intervalsRef.current[id] = setInterval(() => {
       setUploadFiles((prev) =>
@@ -93,8 +211,8 @@ export default function PatientDetailsScreen() {
       if (result.canceled) return;
 
       for (const asset of result.assets) {
-        const size = asset.size ?? 512 * 1024; // fallback 512 KB if unknown
-        if (size > MAX_FILE_BYTES) continue; // silently skip oversized files
+        const size = asset.size ?? 512 * 1024;
+        if (size > MAX_FILE_BYTES) continue;
         const id = `${Date.now()}-${Math.random()}`;
         const newFile: UploadFile = {
           id,
@@ -107,7 +225,7 @@ export default function PatientDetailsScreen() {
         simulateUpload(id, size);
       }
     } catch {
-      // user dismissed or permission denied — no-op
+      // dismissed
     }
   }, [simulateUpload]);
 
@@ -117,8 +235,38 @@ export default function PatientDetailsScreen() {
     setUploadFiles((prev) => prev.filter((f) => f.id !== id));
   }, []);
 
+  const handleNext = () => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      Alert.alert('Name required', 'Enter the patient name to continue.');
+      return;
+    }
+
+    const genderLabel = GENDERS.find((g) => g.id === gender)?.label ?? gender;
+    const notes = problem.trim();
+
+    router.push({
+      pathname: '/appointment-details',
+      params: {
+        patientName: encodeURIComponent(trimmedName),
+        age: String(ageFromDob(dob)),
+        gender: encodeURIComponent(genderLabel),
+        notes: encodeURIComponent(notes),
+        type: Types.AppointmentType.Scheduled,
+        doctorId: doctorId!,
+        doctorTimeSlotId: doctorTimeSlotId!,
+      },
+    });
+  };
+
+  if (!doctorId || !doctorTimeSlotId) {
+    return null;
+  }
+
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: theme.background }]}
+      edges={['top']}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -128,19 +276,51 @@ export default function PatientDetailsScreen() {
             keyboardShouldPersistTaps='handled'
             contentContainerStyle={styles.scroll}>
             <ScreenHeader title='Patient Details' />
+            <BookingStepIndicator current='patient' />
+
+            <BookingContextCard
+              doctorName={doctorName}
+              specialty={specialty}
+              photoSource={photoSource}
+              slotStart={selectedSlot?.startDateTime}
+              slotEnd={selectedSlot?.endDateTime}
+              loading={doctorLoading}
+            />
+
+            <PatientInfoSection
+              selected={patientChoice}
+              onSelect={setPatientChoice}
+              patientName={name.trim() || 'Your profile'}
+              patientMeta={patientMeta}
+              avatar={patientAvatar}
+            />
+
+            {patientChoice === 'other' ? (
+              <Text
+                style={[
+                  styles.helper,
+                  { color: theme.textSecondary, fontFamily: fonts.regular },
+                ]}>
+                Fill in details for the person receiving care.
+              </Text>
+            ) : null}
 
             <Input
               theme={theme}
               label='Name'
               value={name}
               onChangeText={setName}
-              placeholder='Enter your name'
+              placeholder='Enter patient name'
               autoCapitalize='words'
+              editable={patientChoice === 'other' || !userLoading}
             />
 
-            {/* Date of Birth */}
             <View style={styles.field}>
-              <Text style={[styles.label, { color: theme.inputLabel, fontFamily: fonts.medium }]}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme.inputLabel, fontFamily: fonts.medium },
+                ]}>
                 Date of Birth
               </Text>
               <Pressable
@@ -150,7 +330,10 @@ export default function PatientDetailsScreen() {
                 <View
                   style={[
                     styles.inputRow,
-                    { backgroundColor: theme.inputBg, borderColor: theme.inputBorder },
+                    {
+                      backgroundColor: theme.inputBg,
+                      borderColor: theme.inputBorder,
+                    },
                   ]}>
                   <Text
                     style={[
@@ -160,16 +343,23 @@ export default function PatientDetailsScreen() {
                         fontFamily: fonts.regular,
                       },
                     ]}>
-                    {dob ? formatDate(dob) : 'Select date'}
+                    {formatDate(dob)}
                   </Text>
-                  <Ionicons name='calendar-outline' size={22} color={theme.textSecondary} />
+                  <Ionicons
+                    name='calendar-outline'
+                    size={22}
+                    color={theme.textSecondary}
+                  />
                 </View>
               </Pressable>
             </View>
 
-            {/* Gender */}
             <View style={styles.field}>
-              <Text style={[styles.label, { color: theme.inputLabel, fontFamily: fonts.medium }]}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme.inputLabel, fontFamily: fonts.medium },
+                ]}>
                 Gender
               </Text>
               <View style={styles.genderRow}>
@@ -185,16 +375,26 @@ export default function PatientDetailsScreen() {
                       <View
                         style={[
                           styles.radioOuter,
-                          { borderColor: selected ? theme.accent : theme.divider },
+                          {
+                            borderColor: selected ? theme.accent : theme.divider,
+                          },
                         ]}>
                         {selected ? (
-                          <View style={[styles.radioInner, { backgroundColor: theme.accent }]} />
+                          <View
+                            style={[
+                              styles.radioInner,
+                              { backgroundColor: theme.accent },
+                            ]}
+                          />
                         ) : null}
                       </View>
                       <Text
                         style={[
                           styles.genderLabel,
-                          { color: theme.textPrimary, fontFamily: fonts.medium },
+                          {
+                            color: theme.textPrimary,
+                            fontFamily: fonts.medium,
+                          },
                         ]}>
                         {g.label}
                       </Text>
@@ -204,10 +404,17 @@ export default function PatientDetailsScreen() {
               </View>
             </View>
 
-            {/* Problem */}
             <View style={styles.field}>
-              <Text style={[styles.label, { color: theme.inputLabel, fontFamily: fonts.medium }]}>
-                Write Your Problem
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme.inputLabel, fontFamily: fonts.medium },
+                ]}>
+                Describe your problem
+              </Text>
+              <Text
+                style={[styles.fieldHint, { color: theme.textMuted }]}>
+                This is sent to your doctor as appointment notes.
               </Text>
               <TextInput
                 style={[
@@ -218,7 +425,7 @@ export default function PatientDetailsScreen() {
                     color: theme.inputText,
                   },
                 ]}
-                placeholder='Write your problem here..'
+                placeholder='Symptoms, concerns, or questions…'
                 placeholderTextColor={theme.inputPlaceholder}
                 multiline
                 textAlignVertical='top'
@@ -227,10 +434,13 @@ export default function PatientDetailsScreen() {
               />
             </View>
 
-            {/* Upload */}
             <View style={styles.field}>
-              <Text style={[styles.label, { color: theme.inputLabel, fontFamily: fonts.medium }]}>
-                Upload Documents ( if any )
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme.inputLabel, fontFamily: fonts.medium },
+                ]}>
+                Upload documents (optional)
               </Text>
               <Pressable
                 onPress={handlePickFiles}
@@ -240,17 +450,24 @@ export default function PatientDetailsScreen() {
                 ]}
                 accessibilityRole='button'
                 accessibilityLabel='Browse files to upload'>
-                <Ionicons name='cloud-upload-outline' size={40} color={theme.textSecondary} />
+                <Ionicons
+                  name='cloud-upload-outline'
+                  size={40}
+                  color={theme.textSecondary}
+                />
                 <Text style={[styles.browseLine, { color: theme.textPrimary }]}>
-                  <Text style={{ color: theme.accent, fontFamily: fonts.semiBold }}>Browse</Text>
+                  <Text
+                    style={{ color: theme.accent, fontFamily: fonts.semiBold }}>
+                    Browse
+                  </Text>
                   {' your files'}
                 </Text>
-                <Text style={[styles.uploadHint, { color: theme.textSecondary }]}>
-                  ( Maximum size 10MB )
+                <Text
+                  style={[styles.uploadHint, { color: theme.textSecondary }]}>
+                  Maximum size 10MB per file
                 </Text>
               </Pressable>
 
-              {/* File cards — rendered below the drop zone */}
               {uploadFiles.map((file) => (
                 <FileUploadCard
                   key={file.id}
@@ -266,21 +483,7 @@ export default function PatientDetailsScreen() {
           <SafeAreaView
             edges={['bottom']}
             style={[styles.footer, { backgroundColor: theme.background }]}>
-            <PrimaryCtaButton
-              label='Next'
-              onPress={() => {
-                const genderLabel = GENDERS.find((g) => g.id === gender)?.label ?? gender;
-                router.push({
-                  pathname: '/appointment-details',
-                  params: {
-                    patientName: encodeURIComponent(name.trim()),
-                    age: String(ageFromDob(dob)),
-                    gender: encodeURIComponent(genderLabel),
-                    problem: encodeURIComponent(problem.trim()),
-                  },
-                });
-              }}
-            />
+            <PrimaryCtaButton label='Review appointment' onPress={handleNext} />
           </SafeAreaView>
         </View>
       </KeyboardAvoidingView>
@@ -303,11 +506,22 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingTop: 4,
   },
+  helper: {
+    fontSize: 13,
+    marginTop: -8,
+    marginBottom: 12,
+    lineHeight: 18,
+  },
   field: {
     marginBottom: 16,
   },
   label: {
     fontSize: 14,
+    marginBottom: 8,
+  },
+  fieldHint: {
+    fontSize: 12,
+    marginTop: -4,
     marginBottom: 8,
   },
   inputRow: {
