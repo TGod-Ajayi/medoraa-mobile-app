@@ -36,12 +36,19 @@ import {
   teeth,
   throat,
 } from '@/config/svg';
-import { useDepartments, useDoctors, useUser } from '@repo/ui/graphql';
+import {
+  useDepartments,
+  useDoctors,
+  useUser,
+  useWellnessPrograms,
+  type WellnessProgramListItem,
+} from '@repo/ui/graphql';
 import { SvgXml } from 'react-native-svg';
 
 const doctorone = require('../../assets/images/doctorone.png');
 const doctortwo = require('../../assets/images/doctortwo.png');
 const doctorthree = require('../../assets/images/doctorthree.png');
+const wellnessprogram = require('../../assets/images/wellness.png');
 const banner = require('../../assets/images/banner.png');
 const cat1 = require('../../assets/images/cat1.png');
 const cat2 = require('../../assets/images/cat2.png');
@@ -57,9 +64,9 @@ const AVATAR =
 const DEFAULT_DOCTOR_IMAGE = require('../../assets/images/user.png');
 
 const services = [
-  { title: 'Instant Consultation', subtitle: 'Start from $50', image: doctorone, bgColor : "#D2F2F0" },
-  { title: 'Book a Specialist', subtitle: 'Start from $100', image: doctortwo, bgColor: "#E9F0FF"},
-  { title: 'Order Medicine', subtitle: 'Delivery in 1 hour', image: doctorthree, bgColor: "#FFDCDC"},
+  { title: 'Instant Consultation', image: doctorone, bgColor : "#D2F2F0" },
+  { title: 'Wellness Programs',  image: wellnessprogram, bgColor: "#E9F0FF"},
+  { title: 'Order Medicine',  image: doctorthree, bgColor: "#FFDCDC"},
 ];
 
 const doctorFilters = [
@@ -207,6 +214,24 @@ function normalizeLabel(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ');
 }
 
+const WELLNESS_CARD_BACKGROUNDS = ['#D2F2F0', '#E9F0FF', '#FFDCDC', '#F0E2D9'];
+const WELLNESS_FALLBACK_IMAGES = [cat1, cat2, cat3, cat4];
+
+function getWellnessProgramImage(
+  program: WellnessProgramListItem,
+  index: number
+): ImageSourcePropType {
+  if (program.category?.iconUrl) {
+    return { uri: program.category.iconUrl };
+  }
+
+  return WELLNESS_FALLBACK_IMAGES[index % WELLNESS_FALLBACK_IMAGES.length];
+}
+
+function getWellnessProgramLabel(program: WellnessProgramListItem) {
+  return program.category?.name ?? program.title;
+}
+
 function getDepartmentUi(department: DepartmentListItem) {
   const keys = [
     normalizeLabel(department.code),
@@ -270,6 +295,16 @@ export default function HomeScreen() {
     limit: 6,
     page: 1,
   });
+  const {
+    wellnessPrograms,
+    loading: wellnessProgramsLoading,
+    error: wellnessProgramsError,
+  } = useWellnessPrograms({
+    limit: 10,
+    page: 1,
+  });
+
+  console.log("wellnessPrograms", JSON.stringify(wellnessPrograms, null, 2));
   const [filter, setFilter] = useState(0);
   const colorScheme = useColorScheme();
   const [doctorWishlist, setDoctorWishlist] = useState<Record<string, boolean>>({});
@@ -406,11 +441,87 @@ export default function HomeScreen() {
                 ]}>
                 {s.title}
               </Text>
-              <Text style={[styles.serviceSub, { color: colorScheme === "dark" ? "#94A3B8" : "", textAlign: 'center', fontSize: 10, fontWeight: '600', }]}> 
-                {s.subtitle}
-              </Text>
             </View>
           ))}
+        </ScrollView>
+        {/* Wellness program  */}
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: theme.textPrimary, fontFamily: fonts.semiBold },
+          ]}>
+          Wellness Categories
+        </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.servicesRow}>
+          {wellnessProgramsLoading ? (
+            <View
+              style={[
+                styles.wellnessStatusCard,
+                { backgroundColor: colorScheme === 'dark' ? '#0F172A' : '#FFFFFF' },
+              ]}>
+              <ActivityIndicator size='small' color={theme.accent} />
+            </View>
+          ) : wellnessProgramsError ? (
+            <View
+              style={[
+                styles.wellnessStatusCard,
+                { backgroundColor: colorScheme === 'dark' ? '#0F172A' : '#FFFFFF' },
+              ]}>
+              <Text style={[styles.wellnessStatusText, { color: theme.textSecondary }]}>
+                Unable to load wellness categories right now.
+              </Text>
+            </View>
+          ) : wellnessPrograms.length === 0 ? (
+            <View
+              style={[
+                styles.wellnessStatusCard,
+                { backgroundColor: colorScheme === 'dark' ? '#0F172A' : '#FFFFFF' },
+              ]}>
+              <Text style={[styles.wellnessStatusText, { color: theme.textSecondary }]}>
+                No wellness categories available yet.
+              </Text>
+            </View>
+          ) : (
+            wellnessPrograms.map((program, index) => (
+              <View
+                key={program.id}
+                style={[
+                  styles.serviceCard,
+                  { backgroundColor: colorScheme === 'dark' ? '#0F172A' : '#FFFFFF' },
+                ]}>
+                <View
+                  style={[
+                    styles.serviceCardImage,
+                    {
+                      backgroundColor:
+                        WELLNESS_CARD_BACKGROUNDS[index % WELLNESS_CARD_BACKGROUNDS.length],
+                    },
+                  ]}>
+                  <Image
+                    source={getWellnessProgramImage(program, index)}
+                    style={styles.serviceImage}
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.serviceTitle,
+                    {
+                      color: theme.textPrimary,
+                      fontFamily: fonts.semiBold,
+                      fontSize: 14,
+                      textAlign: 'center',
+                      fontWeight: '600',
+                    },
+                  ]}
+                  numberOfLines={2}>
+                  {getWellnessProgramLabel(program)}
+                </Text>
+              </View>
+            ))
+          )}
         </ScrollView>
 
         {/* Departments */}
@@ -787,6 +898,18 @@ const styles = StyleSheet.create({
   serviceImage: { width: 67, height: 73, borderRadius: 12 , position: "absolute", bottom:1, marginHorizontal:"auto", left:"17%"},
   serviceTitle: { fontSize: 14, marginTop: 6,  },
   serviceSub: { fontSize: 12, marginTop: 4, },
+  wellnessStatusCard: {
+    width: 180,
+    minHeight: 140,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  wellnessStatusText: {
+    fontSize: 13,
+    textAlign: 'center',
+  },
   departmentStatusContainer: {
     alignItems: 'center',
     justifyContent: 'center',
