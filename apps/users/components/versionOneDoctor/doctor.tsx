@@ -18,8 +18,8 @@ import {
   ScreenHeader,
   SectionTitle,
   SymptomIconItem,
-} from '../../components/doctor';
-import { SectionHeader } from '../../components/home';
+} from '../doctor';
+import { SectionHeader } from '../home';
 import { useTheme } from '../../config/theme';
 import {
   allergy,

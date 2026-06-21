@@ -1,20 +1,22 @@
 import { Tabs } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
-import { SvgXml } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SvgXml } from 'react-native-svg';
 
 import { AuthGate } from '../../components/auth';
 import {
   appointmentActive,
   appointmentInactive,
-  doctorActive,
-  doctorInactive,
+  feedActive,
+  feedInactive,
   historyActive,
   historyInactive,
   homeActive,
   homeInactive,
   medicineActive,
   medicineInactive,
+  wellnessActive,
+  wellnessInactive,
 } from '../../config/svg';
 import { useTheme } from '../../config/theme';
 
@@ -25,7 +27,7 @@ function tabIconXml(
   activeXml: string,
   inactiveXml: string,
   focused: boolean,
-  muted: string,
+  muted: string
 ): string {
   if (focused) {
     return activeXml;
@@ -63,93 +65,107 @@ export default function TabsLayout() {
 
   return (
     <AuthGate>
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: theme.card,
-          borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: theme.divider,
-          height: tabHeight,
-          paddingTop: 8,
-          paddingBottom: bottomPad,
-        },
-        tabBarActiveTintColor: accent,
-        tabBarInactiveTintColor: muted,
-        tabBarLabelStyle: styles.tabLabel,
-        tabBarItemStyle: styles.tabItem,
-      }}>
-      <Tabs.Screen
-        name='index'
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ focused }) => (
-            <TabSvg
-              activeXml={homeActive}
-              inactiveXml={homeInactive}
-              focused={focused}
-              muted={muted}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name='doctor'
-        options={{
-          title: 'Doctor',
-          tabBarIcon: ({ focused }) => (
-            <TabSvg
-              activeXml={doctorActive}
-              inactiveXml={doctorInactive}
-              focused={focused}
-              muted={muted}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name='medicine'
-        options={{
-          title: 'Medicine',
-          tabBarIcon: ({ focused }) => (
-            <TabSvg
-              activeXml={medicineActive}
-              inactiveXml={medicineInactive}
-              focused={focused}
-              muted={muted}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name='appointment'
-        options={{
-          title: 'Appointment',
-          tabBarIcon: ({ focused }) => (
-            <TabSvg
-              activeXml={appointmentActive}
-              inactiveXml={appointmentInactive}
-              focused={focused}
-              muted={muted}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name='history'
-        options={{
-          title: 'History',
-          tabBarIcon: ({ focused }) => (
-            <TabSvg
-              activeXml={historyActive}
-              inactiveXml={historyInactive}
-              focused={focused}
-              muted={muted}
-            />
-          ),
-        }}
-      />
-    </Tabs>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: {
+            backgroundColor: theme.card,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: theme.divider,
+            height: tabHeight,
+            paddingTop: 8,
+            paddingBottom: bottomPad,
+          },
+          tabBarActiveTintColor: accent,
+          tabBarInactiveTintColor: muted,
+          tabBarLabelStyle: styles.tabLabel,
+          tabBarItemStyle: styles.tabItem,
+        }}>
+        <Tabs.Screen
+          name='index'
+          options={{
+            title: 'Home',
+            tabBarIcon: ({ focused }) => (
+              <TabSvg
+                activeXml={homeActive}
+                inactiveXml={homeInactive}
+                focused={focused}
+                muted={muted}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name='feed'
+          options={{
+            title: 'Feed',
+            tabBarIcon: ({ focused }) => (
+              <TabSvg
+                activeXml={feedActive}
+                inactiveXml={feedInactive}
+                focused={focused}
+                muted={muted}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name='Wellness'
+          options={{
+            title: 'Wellness',
+            tabBarIcon: ({ focused }) => (
+              <TabSvg
+                activeXml={wellnessActive}
+                inactiveXml={wellnessInactive}
+                focused={focused}
+                muted={muted}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name='medicine'
+          options={{
+            title: 'Medicine',
+            tabBarIcon: ({ focused }) => (
+              <TabSvg
+                activeXml={medicineActive}
+                inactiveXml={medicineInactive}
+                focused={focused}
+                muted={muted}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name='appointment'
+          options={{
+            title: 'Appointment',
+            tabBarIcon: ({ focused }) => (
+              <TabSvg
+                activeXml={appointmentActive}
+                inactiveXml={appointmentInactive}
+                focused={focused}
+                muted={muted}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name='history'
+          options={{
+            title: 'History',
+            tabBarIcon: ({ focused }) => (
+              <TabSvg
+                activeXml={historyActive}
+                inactiveXml={historyInactive}
+                focused={focused}
+                muted={muted}
+              />
+            ),
+          }}
+        />
+      </Tabs>
     </AuthGate>
   );
 }

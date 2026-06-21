@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CategoryCard, ProductCard, SectionHeader } from '../../components/home';
+import { WellnessProgramBottomSheet } from '../../components/wellness/WellnessProgramBottomSheet';
 import { LogoutButton } from '../../components/profile';
 import { fonts } from '../../config/fonts';
 import { useTheme } from '../../config/theme';
@@ -306,6 +307,8 @@ export default function HomeScreen() {
 
   console.log("wellnessPrograms", JSON.stringify(wellnessPrograms, null, 2));
   const [filter, setFilter] = useState(0);
+  const [selectedWellnessProgramId, setSelectedWellnessProgramId] = useState<string | null>(null);
+  const [wellnessSheetVisible, setWellnessSheetVisible] = useState(false);
   const colorScheme = useColorScheme();
   const [doctorWishlist, setDoctorWishlist] = useState<Record<string, boolean>>({});
   const [productWishlist, setProductWishlist] = useState<Record<string, boolean>>({
@@ -486,8 +489,14 @@ export default function HomeScreen() {
             </View>
           ) : (
             wellnessPrograms.map((program, index) => (
-              <View
+              <Pressable
                 key={program.id}
+                onPress={() => {
+                  setSelectedWellnessProgramId(program.id);
+                  setWellnessSheetVisible(true);
+                }}
+                accessibilityRole='button'
+                accessibilityLabel={getWellnessProgramLabel(program)}
                 style={[
                   styles.serviceCard,
                   { backgroundColor: colorScheme === 'dark' ? '#0F172A' : '#FFFFFF' },
@@ -519,7 +528,7 @@ export default function HomeScreen() {
                   numberOfLines={2}>
                   {getWellnessProgramLabel(program)}
                 </Text>
-              </View>
+              </Pressable>
             ))
           )}
         </ScrollView>
@@ -761,6 +770,15 @@ export default function HomeScreen() {
 
         <View style={{ height: 24 }} />
       </ScrollView>
+
+      <WellnessProgramBottomSheet
+        visible={wellnessSheetVisible}
+        programId={selectedWellnessProgramId}
+        onClose={() => {
+          setWellnessSheetVisible(false);
+          setSelectedWellnessProgramId(null);
+        }}
+      />
     </SafeAreaView>
   );
 }

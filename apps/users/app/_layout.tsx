@@ -9,6 +9,7 @@ import { gqlClientConnect } from '@repo/ui/graphql';
 import { Stack } from 'expo-router';
 
 import { AuthSessionGuard } from '../components/auth';
+import { OtaUpdateManager } from '../components/ota/OtaUpdateManager';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -28,6 +29,7 @@ export default function RootLayout() {
           <BottomSheetModalProvider>
             <ThemeProvider
               value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+              <OtaUpdateManager />
               <AuthSessionGuard />
               <Stack screenOptions={{ headerShown: false }} />
               <StatusBar style='auto' />
