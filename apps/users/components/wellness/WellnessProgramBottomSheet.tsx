@@ -7,7 +7,7 @@ import {
 } from '@gorhom/bottom-sheet';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBottomSheetInsets } from '@repo/ui/hooks';
 
 import { fonts } from '../../config/fonts';
 import { useTheme } from '../../config/theme';
@@ -103,7 +103,7 @@ function ProgramDaySection({
 
 export function WellnessProgramBottomSheet({ visible, programId, onClose }: Props) {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
+  const { bottomInset, contentPaddingBottom } = useBottomSheetInsets();
   const sheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ['70%', '92%'], []);
   const { fetchWellnessProgram, wellnessProgram, loading, error } = useWellnessProgramLazy();
@@ -156,11 +156,11 @@ export function WellnessProgramBottomSheet({ visible, programId, onClose }: Prop
       onDismiss={handleDismiss}
       handleIndicatorStyle={[styles.handle, { backgroundColor: theme.divider }]}
       backgroundStyle={[styles.sheet, { backgroundColor: theme.card }]}
-      bottomInset={Math.max(insets.bottom, 12)}>
+      bottomInset={bottomInset}>
       <BottomSheetScrollView
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: Math.max(insets.bottom, 16) },
+          { paddingBottom: contentPaddingBottom },
         ]}>
         <Text
           style={[styles.title, { color: theme.textPrimary, fontFamily: fonts.semiBold }]}
