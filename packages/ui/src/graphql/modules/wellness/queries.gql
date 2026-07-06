@@ -1,0 +1,92 @@
+query GetWellnessProgram($id: ID!) {
+  getWellnessProgram(id: $id) {
+    id
+    title
+    description
+    durationWeeks
+    difficulty
+    accessLevel
+    publishStatus
+    targetAudience
+    createdAt
+    updatedAt
+    category {
+      id
+      name
+      iconUrl
+      slug
+    }
+    coverImage {
+      id
+      key
+    }
+    doctor {
+      id
+      averageRating
+      totalReviews
+      user {
+        firstName
+        lastName
+        profilePhoto
+      }
+    }
+    days {
+      id
+      dayNumber
+      title
+      description
+      tasks {
+        id
+        title
+        description
+        sortOrder
+      }
+    }
+  }
+}
+
+query GetWellnessPrograms($paginationArgs: OffsetPaginationArgs!) {
+  getWellnessPrograms(paginationArgs: $paginationArgs) {
+    pageInfo {
+      currentPage
+      itemCount
+      itemsPerPage
+      totalItems
+      totalPages
+    }
+    items {
+      id
+      title
+      description
+      durationWeeks
+      difficulty
+      accessLevel
+      publishStatus
+      targetAudience
+      category {
+        id
+        name
+        iconUrl
+        slug
+      }
+      coverImage {
+        id
+        key
+      }
+    }
+  }
+}
+
+query GetLifestyleCategories($activeOnly: Boolean) {
+  getLifestyleCategories(activeOnly: $activeOnly) {
+    id
+    name
+    slug
+    description
+    iconUrl
+    isActive
+    sortOrder
+    createdAt
+    updatedAt
+  }
+}

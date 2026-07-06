@@ -1,0 +1,43 @@
+mutation CreateWellnessProgram($input: CreateWellnessProgramInput!) {
+  createWellnessProgram(input: $input) {
+    id
+    title
+    description
+    durationWeeks
+    difficulty
+    accessLevel
+    publishStatus
+    targetAudience
+    category {
+      id
+      name
+    }
+    coverImage {
+      id
+      key
+    }
+    createdAt
+  }
+}
+
+mutation UpdateWellnessProgram($input: UpdateWellnessProgramInput!) {
+  updateWellnessProgram(input: $input) {
+    id
+    title
+    description
+    durationWeeks
+    difficulty
+    accessLevel
+    publishStatus
+    targetAudience
+    category {
+      id
+      name
+    }
+    coverImage {
+      id
+      key
+    }
+    updatedAt
+  }
+}

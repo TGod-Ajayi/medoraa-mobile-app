@@ -1,3 +1,4 @@
+import { AuthGate } from '../../components/auth';
 import type { ParamListBase } from '@react-navigation/native';
 import type { StackNavigationState } from '@react-navigation/native';
 import { withLayoutContext } from 'expo-router';
@@ -39,6 +40,7 @@ const slideFromRight: BlankStackNavigationOptions = {
 
 export default function ProfileLayout() {
   return (
+    <AuthGate>
     <ProfileStack
       screenOptions={({ route }) => {
         const base: BlankStackNavigationOptions = {};
@@ -55,5 +57,6 @@ export default function ProfileLayout() {
         return base;
       }}
     />
+    </AuthGate>
   );
 }

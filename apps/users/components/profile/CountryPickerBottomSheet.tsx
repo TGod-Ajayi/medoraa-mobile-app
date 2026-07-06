@@ -9,7 +9,7 @@ import {
 } from '@gorhom/bottom-sheet';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBottomSheetInsets } from '@repo/ui/hooks';
 
 import { fonts } from '../../config/fonts';
 import { useTheme } from '../../config/theme';
@@ -216,7 +216,7 @@ type Props = {
  */
 export function CountryPickerBottomSheet({ visible, selected, onSelect, onClose }: Props) {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
+  const { bottomInset, contentPaddingBottom } = useBottomSheetInsets();
   const sheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ['70%', '92%'], []);
   const [query, setQuery] = useState('');
@@ -309,7 +309,8 @@ export function CountryPickerBottomSheet({ visible, selected, onSelect, onClose 
       keyboardBehavior='interactive'
       keyboardBlurBehavior='restore'
       handleIndicatorStyle={[styles.handle, { backgroundColor: theme.divider }]}
-      backgroundStyle={[styles.sheet, { backgroundColor: theme.card }]}>
+      backgroundStyle={[styles.sheet, { backgroundColor: theme.card }]}
+      bottomInset={bottomInset}>
       {/*
         BottomSheetView wraps ONLY the fixed header (title + search).
         BottomSheetFlatList must be a direct sibling — not nested inside a
@@ -342,7 +343,7 @@ export function CountryPickerBottomSheet({ visible, selected, onSelect, onClose 
         renderItem={renderItem}
         keyboardShouldPersistTaps='handled'
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) }}
+        contentContainerStyle={{ paddingBottom: contentPaddingBottom }}
         getItemLayout={(_data: unknown, index: number) => ({ length: 52, offset: 52 * index, index })}
         ListEmptyComponent={
           <View style={styles.empty}>

@@ -7,3 +7,5 @@ export { RemoveFavouriteBottomSheet } from './RemoveFavouriteBottomSheet';
 export type { RemoveFavouriteDoctorPreview } from './RemoveFavouriteBottomSheet';
 export type { FavouriteDoctorCardProps } from './FavouriteDoctorCard';
 export { ProfileMenuItem } from './ProfileMenuItem';
+export { LogoutButton } from './LogoutButton';
+export { useLogout } from './useLogout';

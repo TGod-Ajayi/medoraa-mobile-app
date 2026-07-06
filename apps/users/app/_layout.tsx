@@ -1,10 +1,15 @@
+import { ApolloProvider } from '@apollo/client/react';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
 } from '@react-navigation/native';
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { gqlClientConnect } from '@repo/ui/graphql';
 import { Stack } from 'expo-router';
+
+import { AuthSessionGuard } from '../components/auth';
+import { OtaUpdateManager } from '../components/ota/OtaUpdateManager';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -18,16 +23,20 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <BottomSheetModalProvider>
-          <ThemeProvider
-            value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <Stack screenOptions={{ headerShown: false }} />
-            <StatusBar style='auto' />
-          </ThemeProvider>
-        </BottomSheetModalProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <ApolloProvider client={gqlClientConnect()}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <BottomSheetModalProvider>
+            <ThemeProvider
+              value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+              <OtaUpdateManager />
+              <AuthSessionGuard />
+              <Stack screenOptions={{ headerShown: false }} />
+              <StatusBar style='auto' />
+            </ThemeProvider>
+          </BottomSheetModalProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ApolloProvider>
   );
 }

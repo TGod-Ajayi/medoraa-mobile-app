@@ -1,5 +1,8 @@
 export { DepartmentIconItem } from './DepartmentIconItem';
+export { DoctorListCard } from './DoctorListCard';
+export type { DoctorListCardProps } from './DoctorListCard';
 export type { DepartmentIconItemProps } from './DepartmentIconItem';
+export { DoctorDetailsView } from './DoctorDetailsView';
 export { DoctorHorizontalCard } from './DoctorHorizontalCard';
 export type { DoctorHorizontalCardProps } from './DoctorHorizontalCard';
 export { FilterChipRow } from './FilterChipRow';

@@ -1,6 +1,6 @@
 import type { ImageSourcePropType } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
 
 import { fonts } from '../../config/fonts';
 import { useTheme } from '../../config/theme';
@@ -17,17 +17,17 @@ type Props = {
 
 export function CategoryCard({ label, backgroundColor, image, onPress, wrapStyle }: Props) {
   const theme = useTheme();
-
+const colorScheme = useColorScheme();
   const content = (
     <View style={[styles.card, { backgroundColor }]}>
       <View style={styles.textCol}>
         <Text
-          style={[styles.label, { color: theme.textPrimary, fontFamily: fonts.semiBold }]}
-          numberOfLines={2}>
+          style={[styles.label, { color: colorScheme == "dark" ? "#171717": "#0F172A", fontFamily: fonts.semiBold }]}
+         >
           {label}
         </Text>
       </View>
-      <Image source={image} style={styles.image} resizeMode='contain' />
+      <Image source={image} style={styles.image} resizeMode='contain'/>
     </View>
   );
 
@@ -62,15 +62,17 @@ const styles = StyleSheet.create({
   textCol: {
     flex: 1,
     paddingVertical: 12,
-    paddingRight: 4,
+    paddingRight: 2,
   },
   label: {
     fontSize: 14,
-    lineHeight: 18,
+    fontWeight: "500",
+    flexWrap: "nowrap",
+
   },
   image: {
-    width: 88,
-    height: 88,
-    marginRight: -4,
+    width: 76,
+    height: 65,
+    marginRight: -1,
   },
 });

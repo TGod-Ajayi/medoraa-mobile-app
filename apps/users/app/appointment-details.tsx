@@ -1,38 +1,50 @@
 import { Ionicons } from '@expo/vector-icons';
+import {
+  Types,
+  useBookAppointment,
+  useDoctorAvailableTimeSlots,
+  useDoctorDetails,
+} from '@repo/ui/graphql';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { PrimaryCtaButton } from '../components/appointment';
+import {
+  BookingContextCard,
+  BookingStepIndicator,
+  formatAppointmentDateTime,
+  PaymentDetailsSection,
+  PrimaryCtaButton,
+  resolveRouteParam,
+  safeDecodeParam,
+} from '../components/appointment';
 import { ScreenHeader } from '../components/doctor';
 import { fonts } from '../config/fonts';
 import type { AppTheme } from '../config/theme';
 import { useTheme } from '../config/theme';
 
-const DOCTOR = {
-  name: 'Dr. Alex Zender',
-  specialty: 'Cardiology',
-  qualifications: 'MBBS, FCPS(Cardiology)',
-  photo:
-    'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop',
-};
+const DEFAULT_DOCTOR_IMAGE = require('../assets/images/user.png');
 
 const INSTRUCTIONS = [
-  'Start meeting with a stable internet connection',
-  'Avoid low light rooms for better observation',
-  'Talk to Doctor loud and clear',
+  'Join from a quiet place with a stable internet connection',
+  'Allow camera and microphone access when prompted',
+  'Describe symptoms clearly so your doctor can help',
 ];
 
-const DEFAULT_PROBLEM =
-  'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.';
-
-function safeDecode(s: string | undefined, fallback: string) {
-  if (!s) return fallback;
-  try {
-    return decodeURIComponent(s);
-  } catch {
-    return s;
+function getErrorMessage(error: unknown) {
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = String((error as { message: string }).message);
+    if (message.trim()) return message;
   }
+  return 'Unable to book the appointment right now. Please try again.';
 }
 
 export default function AppointmentDetailsScreen() {
@@ -42,14 +54,152 @@ export default function AppointmentDetailsScreen() {
     patientName?: string;
     age?: string;
     gender?: string;
-    problem?: string;
+    notes?: string;
+    type?: string;
+    doctorId?: string | string[];
+    doctorTimeSlotId?: string | string[];
   }>();
 
-  const patientName = safeDecode(params.patientName, 'Akash basak');
-  const age = params.age ?? '26';
-  const gender = safeDecode(params.gender, 'Male');
-  const problemRaw = params.problem ? safeDecode(params.problem, '') : '';
-  const problem = problemRaw.trim() || DEFAULT_PROBLEM;
+  const { bookAppointment, loading: booking } = useBookAppointment();
+
+  const doctorId = resolveRouteParam(params.doctorId);
+  const doctorTimeSlotId = resolveRouteParam(params.doctorTimeSlotId);
+  const patientName = safeDecodeParam(resolveRouteParam(params.patientName), 'Patient');
+  const age = resolveRouteParam(params.age) ?? '—';
+  const gender = safeDecodeParam(resolveRouteParam(params.gender), '—');
+  const notes = safeDecodeParam(resolveRouteParam(params.notes), '').trim();
+
+  const initialType =
+    resolveRouteParam(params.type) === Types.AppointmentType.Instant
+      ? Types.AppointmentType.Instant
+      : Types.AppointmentType.Scheduled;
+  const [appointmentType, setAppointmentType] =
+    useState<Types.AppointmentType>(initialType);
+
+  const { doctor, loading: doctorLoading } = useDoctorDetails(doctorId, {
+    skip: !doctorId,
+  });
+  const { slots } = useDoctorAvailableTimeSlots({
+    doctorId,
+    skip: !doctorId,
+  });
+
+  const selectedSlot = useMemo(
+    () => slots.find((slot) => slot.id === doctorTimeSlotId) ?? null,
+    [doctorTimeSlotId, slots],
+  );
+
+  const scheduleLabel = selectedSlot
+    ? formatAppointmentDateTime(
+        selectedSlot.startDateTime,
+        selectedSlot.endDateTime,
+      )
+    : null;
+
+  const specialtyLabel =
+    doctor?.doctorsSpecialties
+      ?.map((entry) => entry.specialty.name)
+      .filter(Boolean)
+      .join(', ') || 'General practice';
+
+  const doctorName = doctor
+    ? (() => {
+        const fullName = [doctor.user.firstName, doctor.user.lastName]
+          .filter((value): value is string => Boolean(value?.trim()))
+          .join(' ');
+        return fullName ? `Dr. ${fullName}` : 'Doctor';
+      })()
+    : 'Doctor';
+
+  const doctorPhoto = doctor?.user.profilePhoto
+    ? { uri: doctor.user.profilePhoto }
+    : DEFAULT_DOCTOR_IMAGE;
+
+  const instantEnabled = Boolean(doctor?.instantConsultationEnabled);
+  const consultationFee =
+    appointmentType === Types.AppointmentType.Instant &&
+    doctor?.instantConsultationFee
+      ? doctor.instantConsultationFee
+      : doctor?.consultationFee;
+
+  const paymentLines = useMemo(
+    () => [
+      {
+        label: 'Consultation fee',
+        value:
+          typeof consultationFee === 'number' && consultationFee > 0
+            ? `$${Math.round(consultationFee)}`
+            : '—',
+      },
+      {
+        label: 'Appointment type',
+        value:
+          appointmentType === Types.AppointmentType.Instant
+            ? 'Instant'
+            : 'Scheduled',
+      },
+    ],
+    [appointmentType, consultationFee],
+  );
+
+  const handleBook = useCallback(async () => {
+    if (!doctorId || !doctorTimeSlotId) {
+      Alert.alert(
+        'Missing details',
+        'Doctor and time slot are required. Go back and choose a time.',
+        [
+          {
+            text: 'Choose time',
+            onPress: () =>
+              router.replace({
+                pathname: '/select-appointment-slot',
+                params: { doctorId: doctorId ?? '' },
+              }),
+          },
+          { text: 'Cancel', style: 'cancel' },
+        ],
+      );
+      return;
+    }
+
+    const input = {
+      doctorId,
+      doctorTimeSlotId,
+      notes: notes || undefined,
+      type: appointmentType,
+    };
+
+    try {
+      const appointment = await bookAppointment(input);
+
+      if (!appointment) {
+        Alert.alert('Booking failed', 'No appointment was returned. Please try again.');
+        return;
+      }
+
+      router.replace({
+        pathname: '/consultation-complete',
+        params: {
+          appointmentId: appointment.id,
+          dateTimeLabel: encodeURIComponent(
+            scheduleLabel ?? formatAppointmentDateTime(appointment.startDate),
+          ),
+          doctorName: encodeURIComponent(doctorName),
+        },
+      });
+    } catch (error) {
+      Alert.alert('Booking failed', getErrorMessage(error));
+    }
+  }, [
+    appointmentType,
+    bookAppointment,
+    doctorId,
+    doctorName,
+    doctorTimeSlotId,
+    notes,
+    router,
+    scheduleLabel,
+  ]);
 
   return (
     <SafeAreaView
@@ -59,38 +209,47 @@ export default function AppointmentDetailsScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scroll}>
-          <ScreenHeader title='Appointment Details' />
+          <ScreenHeader title='Confirm booking' />
+          <BookingStepIndicator current='confirm' />
 
-          {/* Doctor card */}
-          <View
-            style={[
-              styles.card,
-              {
-                backgroundColor: theme.card,
-                borderColor: theme.divider,
-              },
-            ]}>
-            <View style={styles.doctorRow}>
-              <Image
-                source={{ uri: DOCTOR.photo }}
-                style={[styles.doctorPhoto, { backgroundColor: theme.accent }]}
-              />
-              <View style={styles.doctorText}>
-                <Text
-                  style={[styles.doctorName, { color: theme.textPrimary, fontFamily: fonts.semiBold }]}>
-                  {DOCTOR.name}
-                </Text>
-                <Text style={[styles.doctorSpec, { color: theme.textSecondary }]}>
-                  {DOCTOR.specialty}
-                </Text>
-                <Text style={[styles.doctorQual, { color: theme.textMuted }]}>
-                  {DOCTOR.qualifications}
-                </Text>
+          <BookingContextCard
+            doctorName={doctorName}
+            specialty={specialtyLabel}
+            photoSource={doctorPhoto}
+            dateTimeLabel={scheduleLabel}
+            loading={doctorLoading}
+          />
+
+          {instantEnabled ? (
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: theme.card, borderColor: theme.divider },
+              ]}>
+              <Text
+                style={[
+                  styles.cardTitle,
+                  { color: theme.textPrimary, fontFamily: fonts.semiBold },
+                ]}>
+                Appointment type
+              </Text>
+              <View style={styles.typeRow}>
+                <TypeChip
+                  label='Scheduled'
+                  selected={appointmentType === Types.AppointmentType.Scheduled}
+                  onPress={() => setAppointmentType(Types.AppointmentType.Scheduled)}
+                  theme={theme}
+                />
+                <TypeChip
+                  label='Instant'
+                  selected={appointmentType === Types.AppointmentType.Instant}
+                  onPress={() => setAppointmentType(Types.AppointmentType.Instant)}
+                  theme={theme}
+                />
               </View>
             </View>
-          </View>
+          ) : null}
 
-          {/* Patient details */}
           <View
             style={[
               styles.card,
@@ -99,24 +258,31 @@ export default function AppointmentDetailsScreen() {
                 borderColor: theme.divider,
               },
             ]}>
-            <Text style={[styles.cardTitle, { color: theme.textPrimary, fontFamily: fonts.semiBold }]}>
-              Patient Details
+            <Text
+              style={[
+                styles.cardTitle,
+                { color: theme.textPrimary, fontFamily: fonts.semiBold },
+              ]}>
+              Patient details
             </Text>
             <DetailRow label='Name' value={patientName} theme={theme} />
             <DetailRow label='Age' value={`${age} years`} theme={theme} />
             <DetailRow label='Gender' value={gender} theme={theme} />
             <View style={styles.problemBlock}>
               <View style={styles.detailRow}>
-                <Text style={[styles.labelCol, { color: theme.textSecondary }]}>Problem</Text>
+                <Text style={[styles.labelCol, { color: theme.textSecondary }]}>
+                  Notes
+                </Text>
                 <Text style={[styles.colon, { color: theme.textSecondary }]}>:</Text>
                 <Text style={[styles.valueCol, { color: theme.textPrimary, flex: 1 }]}>
-                  {problem}
+                  {notes || 'No notes provided'}
                 </Text>
               </View>
             </View>
           </View>
 
-          {/* General instructions */}
+          <PaymentDetailsSection lines={paymentLines} />
+
           <View
             style={[
               styles.card,
@@ -125,8 +291,12 @@ export default function AppointmentDetailsScreen() {
                 borderColor: theme.divider,
               },
             ]}>
-            <Text style={[styles.cardTitle, { color: theme.textPrimary, fontFamily: fonts.semiBold }]}>
-              General Instructions
+            <Text
+              style={[
+                styles.cardTitle,
+                { color: theme.textPrimary, fontFamily: fonts.semiBold },
+              ]}>
+              Before you connect
             </Text>
             {INSTRUCTIONS.map((line) => (
               <View key={line} style={styles.instructionRow}>
@@ -145,12 +315,49 @@ export default function AppointmentDetailsScreen() {
           edges={['bottom']}
           style={[styles.footer, { backgroundColor: theme.background }]}>
           <PrimaryCtaButton
-            label='Connect to Doctor'
-            onPress={() => router.push('/consultation-complete')}
+            label={booking ? 'Booking appointment…' : 'Confirm & book'}
+            disabled={booking || doctorLoading}
+            onPress={booking ? undefined : handleBook}
           />
         </SafeAreaView>
       </View>
     </SafeAreaView>
+  );
+}
+
+function TypeChip({
+  label,
+  selected,
+  onPress,
+  theme,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  theme: AppTheme;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.typeChip,
+        {
+          backgroundColor: selected ? theme.accent : theme.surfaceMuted,
+        },
+      ]}
+      accessibilityRole='radio'
+      accessibilityState={{ selected }}>
+      <Text
+        style={[
+          styles.typeChipText,
+          {
+            color: selected ? '#FFFFFF' : theme.textPrimary,
+            fontFamily: selected ? fonts.semiBold : fonts.regular,
+          },
+        ]}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -197,30 +404,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 14,
   },
-  doctorRow: {
+  typeRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
+    gap: 10,
   },
-  doctorPhoto: {
-    width: 88,
-    height: 88,
-    borderRadius: 12,
-  },
-  doctorText: {
+  typeChip: {
     flex: 1,
-    minWidth: 0,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
   },
-  doctorName: {
-    fontSize: 17,
-  },
-  doctorSpec: {
+  typeChipText: {
     fontSize: 15,
-    marginTop: 4,
-  },
-  doctorQual: {
-    fontSize: 13,
-    marginTop: 4,
   },
   detailRow: {
     flexDirection: 'row',

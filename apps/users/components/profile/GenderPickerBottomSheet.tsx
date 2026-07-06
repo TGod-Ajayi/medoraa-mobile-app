@@ -7,7 +7,7 @@ import {
 } from '@gorhom/bottom-sheet';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBottomSheetInsets } from '@repo/ui/hooks';
 
 import { fonts } from '../../config/fonts';
 import { useTheme } from '../../config/theme';
@@ -27,7 +27,7 @@ type Props = {
  */
 export function GenderPickerBottomSheet({ visible, selected, onSelect, onClose }: Props) {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
+  const { bottomInset, contentPaddingBottom } = useBottomSheetInsets();
   const sheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ['38%'], []);
 
@@ -67,11 +67,11 @@ export function GenderPickerBottomSheet({ visible, selected, onSelect, onClose }
       onDismiss={handleDismiss}
       handleIndicatorStyle={[styles.handle, { backgroundColor: theme.divider }]}
       backgroundStyle={[styles.sheet, { backgroundColor: theme.card }]}
-      bottomInset={Math.max(insets.bottom, 12)}>
+      bottomInset={bottomInset}>
       <BottomSheetView
         style={[
           styles.content,
-          { paddingBottom: Math.max(insets.bottom, 16) },
+          { paddingBottom: contentPaddingBottom },
         ]}>
         <Text
           style={[styles.title, { color: theme.textPrimary, fontFamily: fonts.semiBold }]}

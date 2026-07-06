@@ -6,19 +6,26 @@ import { useTheme } from '../../config/theme';
 type Props = {
   label: string;
   onPress?: () => void;
+  disabled?: boolean;
 };
 
-export function PrimaryCtaButton({ label, onPress }: Props) {
+export function PrimaryCtaButton({ label, onPress, disabled }: Props) {
   const theme = useTheme();
+  const isDisabled = disabled || !onPress;
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={isDisabled ? undefined : onPress}
+      disabled={isDisabled}
       style={({ pressed }) => [
         styles.btn,
-        { backgroundColor: theme.accent, opacity: pressed ? 0.92 : 1 },
+        {
+          backgroundColor: theme.accent,
+          opacity: isDisabled ? 0.45 : pressed ? 0.92 : 1,
+        },
       ]}
-      accessibilityRole='button'>
+      accessibilityRole='button'
+      accessibilityState={{ disabled: isDisabled }}>
       <Text style={[styles.label, { fontFamily: fonts.semiBold }]}>{label}</Text>
     </Pressable>
   );

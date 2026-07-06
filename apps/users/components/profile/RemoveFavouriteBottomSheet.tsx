@@ -8,7 +8,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { ImageSourcePropType } from 'react-native';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBottomSheetInsets } from '@repo/ui/hooks';
 
 import { fonts } from '../../config/fonts';
 import { useTheme } from '../../config/theme';
@@ -43,7 +43,7 @@ export function RemoveFavouriteBottomSheet({
   onConfirmRemove,
 }: Props) {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
+  const { bottomInset, contentPaddingBottom } = useBottomSheetInsets();
   const sheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ['48%', '58%'], []);
 
@@ -88,12 +88,12 @@ export function RemoveFavouriteBottomSheet({
       onDismiss={handleDismiss}
       handleIndicatorStyle={[styles.handle, { backgroundColor: theme.divider }]}
       backgroundStyle={[styles.sheet, { backgroundColor: theme.card }]}
-      bottomInset={Math.max(insets.bottom, 12)}>
+      bottomInset={bottomInset}>
       <BottomSheetView
         style={[
           styles.content,
           {
-            paddingBottom: Math.max(insets.bottom, 16),
+            paddingBottom: contentPaddingBottom,
           },
         ]}>
         <Text

@@ -1,5 +1,18 @@
 mutation UpdateUser($updateUserInput: UpdateUserInput!) {
   updateUser(updateUserInput: $updateUserInput) {
     id
+    firstName
+    lastName
+    email
+    dateOfBirth
+    gender
+    phoneNumber
+    profilePhoto
+    role
+    loginType
+    isPremium
+    premiumExpiresAt
+    createdAt
+    updatedAt
   }
 }

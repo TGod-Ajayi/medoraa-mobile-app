@@ -1,7 +1,6 @@
-import { isTokenExpired } from '@repo/ui/graphql';
+import { tryRestoreSessionWithRefresh } from '@repo/ui/graphql';
 import { useTheme } from '../config/theme';
 import { useRouter } from 'expo-router';
-import { getItemAsync } from 'expo-secure-store';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
@@ -15,12 +14,11 @@ export default function IndexScreen() {
 
     async function redirect() {
       try {
-        const token = await getItemAsync('token');
-        const expired = isTokenExpired(token);
+        const sessionOk = await tryRestoreSessionWithRefresh();
 
         if (cancelled) return;
 
-        if (token && !expired) {
+        if (sessionOk) {
           router.replace('/(tabs)');
         } else {
           router.replace('/(auth)/onboarding');

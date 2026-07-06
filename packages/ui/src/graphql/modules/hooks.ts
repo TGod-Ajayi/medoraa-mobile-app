@@ -6,6 +6,44 @@ import * as Graphql from './types';
 
 const defaultOptions = {} as const;
 
+export function useBookAppointmentMutation(baseOptions?: Apollo.useMutation.Options<Graphql.BookAppointmentMutation, Graphql.BookAppointmentMutationVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useMutation<Graphql.BookAppointmentMutation, Graphql.BookAppointmentMutationVariables>(Graphql.BookAppointmentDocument, options);};
+export type BookAppointmentMutationHookResult = ReturnType<typeof useBookAppointmentMutation>;
+export type BookAppointmentMutationResult = Apollo.useMutation.Result<Graphql.BookAppointmentMutation>;
+
+export function useRescheduleAppointmentMutation(baseOptions?: Apollo.useMutation.Options<Graphql.RescheduleAppointmentMutation, Graphql.RescheduleAppointmentMutationVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useMutation<Graphql.RescheduleAppointmentMutation, Graphql.RescheduleAppointmentMutationVariables>(Graphql.RescheduleAppointmentDocument, options);};
+export type RescheduleAppointmentMutationHookResult = ReturnType<typeof useRescheduleAppointmentMutation>;
+export type RescheduleAppointmentMutationResult = Apollo.useMutation.Result<Graphql.RescheduleAppointmentMutation>;
+
+export function useGetAppointmentsQuery(baseOptions: Apollo.useQuery.Options<Graphql.GetAppointmentsQuery, Graphql.GetAppointmentsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.GetAppointmentsQuery, Graphql.GetAppointmentsQueryVariables>(Graphql.GetAppointmentsDocument, options);};
+export type GetAppointmentsQueryHookResult = ReturnType<typeof useGetAppointmentsQuery>;
+export type GetAppointmentsQueryResult = Apollo.useQuery.Result<Graphql.GetAppointmentsQuery, Graphql.GetAppointmentsQueryVariables>;
+
+export function useGetAppointmentsLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.GetAppointmentsQuery, Graphql.GetAppointmentsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.GetAppointmentsQuery, Graphql.GetAppointmentsQueryVariables>(Graphql.GetAppointmentsDocument, options);};
+export type GetAppointmentsLazyQueryHookResult = ReturnType<typeof useGetAppointmentsLazyQuery>;
+
+export function useGetAppointmentsSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetAppointmentsQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetAppointmentsQuery, Graphql.GetAppointmentsQueryVariables>(Graphql.GetAppointmentsDocument, options);};
+export type GetAppointmentsSuspenseQueryHookResult = ReturnType<typeof useGetAppointmentsSuspenseQuery>;
+
+export function useMyAppointmentsQuery(baseOptions?: Apollo.useQuery.Options<Graphql.MyAppointmentsQuery, Graphql.MyAppointmentsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.MyAppointmentsQuery, Graphql.MyAppointmentsQueryVariables>(Graphql.MyAppointmentsDocument, options);};
+export type MyAppointmentsQueryHookResult = ReturnType<typeof useMyAppointmentsQuery>;
+export type MyAppointmentsQueryResult = Apollo.useQuery.Result<Graphql.MyAppointmentsQuery, Graphql.MyAppointmentsQueryVariables>;
+
+export function useMyAppointmentsLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.MyAppointmentsQuery, Graphql.MyAppointmentsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.MyAppointmentsQuery, Graphql.MyAppointmentsQueryVariables>(Graphql.MyAppointmentsDocument, options);};
+export type MyAppointmentsLazyQueryHookResult = ReturnType<typeof useMyAppointmentsLazyQuery>;
+
+export function useMyAppointmentsSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.MyAppointmentsQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.MyAppointmentsQuery, Graphql.MyAppointmentsQueryVariables>(Graphql.MyAppointmentsDocument, options);};
+export type MyAppointmentsSuspenseQueryHookResult = ReturnType<typeof useMyAppointmentsSuspenseQuery>;
+
+export function useGetDoctorAvailableTimeSlotsQuery(baseOptions: Apollo.useQuery.Options<Graphql.GetDoctorAvailableTimeSlotsQuery, Graphql.GetDoctorAvailableTimeSlotsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.GetDoctorAvailableTimeSlotsQuery, Graphql.GetDoctorAvailableTimeSlotsQueryVariables>(Graphql.GetDoctorAvailableTimeSlotsDocument, options);};
+export type GetDoctorAvailableTimeSlotsQueryHookResult = ReturnType<typeof useGetDoctorAvailableTimeSlotsQuery>;
+export type GetDoctorAvailableTimeSlotsQueryResult = Apollo.useQuery.Result<Graphql.GetDoctorAvailableTimeSlotsQuery, Graphql.GetDoctorAvailableTimeSlotsQueryVariables>;
+
+export function useGetDoctorAvailableTimeSlotsLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.GetDoctorAvailableTimeSlotsQuery, Graphql.GetDoctorAvailableTimeSlotsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.GetDoctorAvailableTimeSlotsQuery, Graphql.GetDoctorAvailableTimeSlotsQueryVariables>(Graphql.GetDoctorAvailableTimeSlotsDocument, options);};
+export type GetDoctorAvailableTimeSlotsLazyQueryHookResult = ReturnType<typeof useGetDoctorAvailableTimeSlotsLazyQuery>;
+
+export function useGetDoctorAvailableTimeSlotsSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetDoctorAvailableTimeSlotsQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetDoctorAvailableTimeSlotsQuery, Graphql.GetDoctorAvailableTimeSlotsQueryVariables>(Graphql.GetDoctorAvailableTimeSlotsDocument, options);};
+export type GetDoctorAvailableTimeSlotsSuspenseQueryHookResult = ReturnType<typeof useGetDoctorAvailableTimeSlotsSuspenseQuery>;
+
 export function useLoginMutation(baseOptions?: Apollo.useMutation.Options<Graphql.LoginMutation, Graphql.LoginMutationVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useMutation<Graphql.LoginMutation, Graphql.LoginMutationVariables>(Graphql.LoginDocument, options);};
 export type LoginMutationHookResult = ReturnType<typeof useLoginMutation>;
 export type LoginMutationResult = Apollo.useMutation.Result<Graphql.LoginMutation>;
@@ -26,9 +64,35 @@ export function useChangePasswordMutation(baseOptions?: Apollo.useMutation.Optio
 export type ChangePasswordMutationHookResult = ReturnType<typeof useChangePasswordMutation>;
 export type ChangePasswordMutationResult = Apollo.useMutation.Result<Graphql.ChangePasswordMutation>;
 
+export function useVerifyResetOtpMutation(baseOptions?: Apollo.useMutation.Options<Graphql.VerifyResetOtpMutation, Graphql.VerifyResetOtpMutationVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useMutation<Graphql.VerifyResetOtpMutation, Graphql.VerifyResetOtpMutationVariables>(Graphql.VerifyResetOtpDocument, options);};
+export type VerifyResetOtpMutationHookResult = ReturnType<typeof useVerifyResetOtpMutation>;
+export type VerifyResetOtpMutationResult = Apollo.useMutation.Result<Graphql.VerifyResetOtpMutation>;
+
+export function useRefreshAccessTokenMutation(baseOptions?: Apollo.useMutation.Options<Graphql.RefreshAccessTokenMutation, Graphql.RefreshAccessTokenMutationVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useMutation<Graphql.RefreshAccessTokenMutation, Graphql.RefreshAccessTokenMutationVariables>(Graphql.RefreshAccessTokenDocument, options);};
+export type RefreshAccessTokenMutationHookResult = ReturnType<typeof useRefreshAccessTokenMutation>;
+export type RefreshAccessTokenMutationResult = Apollo.useMutation.Result<Graphql.RefreshAccessTokenMutation>;
+
+export function useGetCreatorContentsQuery(baseOptions: Apollo.useQuery.Options<Graphql.GetCreatorContentsQuery, Graphql.GetCreatorContentsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.GetCreatorContentsQuery, Graphql.GetCreatorContentsQueryVariables>(Graphql.GetCreatorContentsDocument, options);};
+export type GetCreatorContentsQueryHookResult = ReturnType<typeof useGetCreatorContentsQuery>;
+export type GetCreatorContentsQueryResult = Apollo.useQuery.Result<Graphql.GetCreatorContentsQuery, Graphql.GetCreatorContentsQueryVariables>;
+
+export function useGetCreatorContentsLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.GetCreatorContentsQuery, Graphql.GetCreatorContentsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.GetCreatorContentsQuery, Graphql.GetCreatorContentsQueryVariables>(Graphql.GetCreatorContentsDocument, options);};
+export type GetCreatorContentsLazyQueryHookResult = ReturnType<typeof useGetCreatorContentsLazyQuery>;
+
+export function useGetCreatorContentsSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetCreatorContentsQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetCreatorContentsQuery, Graphql.GetCreatorContentsQueryVariables>(Graphql.GetCreatorContentsDocument, options);};
+export type GetCreatorContentsSuspenseQueryHookResult = ReturnType<typeof useGetCreatorContentsSuspenseQuery>;
+
 export function useUpdateDoctorMutation(baseOptions?: Apollo.useMutation.Options<Graphql.UpdateDoctorMutation, Graphql.UpdateDoctorMutationVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useMutation<Graphql.UpdateDoctorMutation, Graphql.UpdateDoctorMutationVariables>(Graphql.UpdateDoctorDocument, options);};
 export type UpdateDoctorMutationHookResult = ReturnType<typeof useUpdateDoctorMutation>;
 export type UpdateDoctorMutationResult = Apollo.useMutation.Result<Graphql.UpdateDoctorMutation>;
+
+export function useCreateDoctorAvailabilityMutation(baseOptions?: Apollo.useMutation.Options<Graphql.CreateDoctorAvailabilityMutation, Graphql.CreateDoctorAvailabilityMutationVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useMutation<Graphql.CreateDoctorAvailabilityMutation, Graphql.CreateDoctorAvailabilityMutationVariables>(Graphql.CreateDoctorAvailabilityDocument, options);};
+export type CreateDoctorAvailabilityMutationHookResult = ReturnType<typeof useCreateDoctorAvailabilityMutation>;
+export type CreateDoctorAvailabilityMutationResult = Apollo.useMutation.Result<Graphql.CreateDoctorAvailabilityMutation>;
+
+export function useRemoveDoctorAvailabilityMutation(baseOptions?: Apollo.useMutation.Options<Graphql.RemoveDoctorAvailabilityMutation, Graphql.RemoveDoctorAvailabilityMutationVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useMutation<Graphql.RemoveDoctorAvailabilityMutation, Graphql.RemoveDoctorAvailabilityMutationVariables>(Graphql.RemoveDoctorAvailabilityDocument, options);};
+export type RemoveDoctorAvailabilityMutationHookResult = ReturnType<typeof useRemoveDoctorAvailabilityMutation>;
+export type RemoveDoctorAvailabilityMutationResult = Apollo.useMutation.Result<Graphql.RemoveDoctorAvailabilityMutation>;
 
 export function useGetDoctorDetailsQuery(baseOptions: Apollo.useQuery.Options<Graphql.GetDoctorDetailsQuery, Graphql.GetDoctorDetailsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.GetDoctorDetailsQuery, Graphql.GetDoctorDetailsQueryVariables>(Graphql.GetDoctorDetailsDocument, options);};
 export type GetDoctorDetailsQueryHookResult = ReturnType<typeof useGetDoctorDetailsQuery>;
@@ -50,6 +114,134 @@ export type GetDoctorLazyQueryHookResult = ReturnType<typeof useGetDoctorLazyQue
 export function useGetDoctorSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetDoctorQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetDoctorQuery, Graphql.GetDoctorQueryVariables>(Graphql.GetDoctorDocument, options);};
 export type GetDoctorSuspenseQueryHookResult = ReturnType<typeof useGetDoctorSuspenseQuery>;
 
+export function useGetDoctorsQuery(baseOptions: Apollo.useQuery.Options<Graphql.GetDoctorsQuery, Graphql.GetDoctorsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.GetDoctorsQuery, Graphql.GetDoctorsQueryVariables>(Graphql.GetDoctorsDocument, options);};
+export type GetDoctorsQueryHookResult = ReturnType<typeof useGetDoctorsQuery>;
+export type GetDoctorsQueryResult = Apollo.useQuery.Result<Graphql.GetDoctorsQuery, Graphql.GetDoctorsQueryVariables>;
+
+export function useGetDoctorsLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.GetDoctorsQuery, Graphql.GetDoctorsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.GetDoctorsQuery, Graphql.GetDoctorsQueryVariables>(Graphql.GetDoctorsDocument, options);};
+export type GetDoctorsLazyQueryHookResult = ReturnType<typeof useGetDoctorsLazyQuery>;
+
+export function useGetDoctorsSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetDoctorsQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetDoctorsQuery, Graphql.GetDoctorsQueryVariables>(Graphql.GetDoctorsDocument, options);};
+export type GetDoctorsSuspenseQueryHookResult = ReturnType<typeof useGetDoctorsSuspenseQuery>;
+
+export function useGetDepartmentsQuery(baseOptions?: Apollo.useQuery.Options<Graphql.GetDepartmentsQuery, Graphql.GetDepartmentsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.GetDepartmentsQuery, Graphql.GetDepartmentsQueryVariables>(Graphql.GetDepartmentsDocument, options);};
+export type GetDepartmentsQueryHookResult = ReturnType<typeof useGetDepartmentsQuery>;
+export type GetDepartmentsQueryResult = Apollo.useQuery.Result<Graphql.GetDepartmentsQuery, Graphql.GetDepartmentsQueryVariables>;
+
+export function useGetDepartmentsLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.GetDepartmentsQuery, Graphql.GetDepartmentsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.GetDepartmentsQuery, Graphql.GetDepartmentsQueryVariables>(Graphql.GetDepartmentsDocument, options);};
+export type GetDepartmentsLazyQueryHookResult = ReturnType<typeof useGetDepartmentsLazyQuery>;
+
+export function useGetDepartmentsSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetDepartmentsQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetDepartmentsQuery, Graphql.GetDepartmentsQueryVariables>(Graphql.GetDepartmentsDocument, options);};
+export type GetDepartmentsSuspenseQueryHookResult = ReturnType<typeof useGetDepartmentsSuspenseQuery>;
+
+export function useGetSpecialtiesQuery(baseOptions?: Apollo.useQuery.Options<Graphql.GetSpecialtiesQuery, Graphql.GetSpecialtiesQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.GetSpecialtiesQuery, Graphql.GetSpecialtiesQueryVariables>(Graphql.GetSpecialtiesDocument, options);};
+export type GetSpecialtiesQueryHookResult = ReturnType<typeof useGetSpecialtiesQuery>;
+export type GetSpecialtiesQueryResult = Apollo.useQuery.Result<Graphql.GetSpecialtiesQuery, Graphql.GetSpecialtiesQueryVariables>;
+
+export function useGetSpecialtiesLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.GetSpecialtiesQuery, Graphql.GetSpecialtiesQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.GetSpecialtiesQuery, Graphql.GetSpecialtiesQueryVariables>(Graphql.GetSpecialtiesDocument, options);};
+export type GetSpecialtiesLazyQueryHookResult = ReturnType<typeof useGetSpecialtiesLazyQuery>;
+
+export function useGetSpecialtiesSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetSpecialtiesQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetSpecialtiesQuery, Graphql.GetSpecialtiesQueryVariables>(Graphql.GetSpecialtiesDocument, options);};
+export type GetSpecialtiesSuspenseQueryHookResult = ReturnType<typeof useGetSpecialtiesSuspenseQuery>;
+
+export function useGetCommonSymptomsQuery(baseOptions?: Apollo.useQuery.Options<Graphql.GetCommonSymptomsQuery, Graphql.GetCommonSymptomsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.GetCommonSymptomsQuery, Graphql.GetCommonSymptomsQueryVariables>(Graphql.GetCommonSymptomsDocument, options);};
+export type GetCommonSymptomsQueryHookResult = ReturnType<typeof useGetCommonSymptomsQuery>;
+export type GetCommonSymptomsQueryResult = Apollo.useQuery.Result<Graphql.GetCommonSymptomsQuery, Graphql.GetCommonSymptomsQueryVariables>;
+
+export function useGetCommonSymptomsLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.GetCommonSymptomsQuery, Graphql.GetCommonSymptomsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.GetCommonSymptomsQuery, Graphql.GetCommonSymptomsQueryVariables>(Graphql.GetCommonSymptomsDocument, options);};
+export type GetCommonSymptomsLazyQueryHookResult = ReturnType<typeof useGetCommonSymptomsLazyQuery>;
+
+export function useGetCommonSymptomsSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetCommonSymptomsQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetCommonSymptomsQuery, Graphql.GetCommonSymptomsQueryVariables>(Graphql.GetCommonSymptomsDocument, options);};
+export type GetCommonSymptomsSuspenseQueryHookResult = ReturnType<typeof useGetCommonSymptomsSuspenseQuery>;
+
+export function useGetCommonSymptomQuery(baseOptions: Apollo.useQuery.Options<Graphql.GetCommonSymptomQuery, Graphql.GetCommonSymptomQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.GetCommonSymptomQuery, Graphql.GetCommonSymptomQueryVariables>(Graphql.GetCommonSymptomDocument, options);};
+export type GetCommonSymptomQueryHookResult = ReturnType<typeof useGetCommonSymptomQuery>;
+export type GetCommonSymptomQueryResult = Apollo.useQuery.Result<Graphql.GetCommonSymptomQuery, Graphql.GetCommonSymptomQueryVariables>;
+
+export function useGetCommonSymptomLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.GetCommonSymptomQuery, Graphql.GetCommonSymptomQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.GetCommonSymptomQuery, Graphql.GetCommonSymptomQueryVariables>(Graphql.GetCommonSymptomDocument, options);};
+export type GetCommonSymptomLazyQueryHookResult = ReturnType<typeof useGetCommonSymptomLazyQuery>;
+
+export function useGetCommonSymptomSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetCommonSymptomQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetCommonSymptomQuery, Graphql.GetCommonSymptomQueryVariables>(Graphql.GetCommonSymptomDocument, options);};
+export type GetCommonSymptomSuspenseQueryHookResult = ReturnType<typeof useGetCommonSymptomSuspenseQuery>;
+
+export function useGetPatientQuery(baseOptions: Apollo.useQuery.Options<Graphql.GetPatientQuery, Graphql.GetPatientQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.GetPatientQuery, Graphql.GetPatientQueryVariables>(Graphql.GetPatientDocument, options);};
+export type GetPatientQueryHookResult = ReturnType<typeof useGetPatientQuery>;
+export type GetPatientQueryResult = Apollo.useQuery.Result<Graphql.GetPatientQuery, Graphql.GetPatientQueryVariables>;
+
+export function useGetPatientLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.GetPatientQuery, Graphql.GetPatientQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.GetPatientQuery, Graphql.GetPatientQueryVariables>(Graphql.GetPatientDocument, options);};
+export type GetPatientLazyQueryHookResult = ReturnType<typeof useGetPatientLazyQuery>;
+
+export function useGetPatientSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetPatientQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetPatientQuery, Graphql.GetPatientQueryVariables>(Graphql.GetPatientDocument, options);};
+export type GetPatientSuspenseQueryHookResult = ReturnType<typeof useGetPatientSuspenseQuery>;
+
+export function useGetPatientsQuery(baseOptions: Apollo.useQuery.Options<Graphql.GetPatientsQuery, Graphql.GetPatientsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.GetPatientsQuery, Graphql.GetPatientsQueryVariables>(Graphql.GetPatientsDocument, options);};
+export type GetPatientsQueryHookResult = ReturnType<typeof useGetPatientsQuery>;
+export type GetPatientsQueryResult = Apollo.useQuery.Result<Graphql.GetPatientsQuery, Graphql.GetPatientsQueryVariables>;
+
+export function useGetPatientsLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.GetPatientsQuery, Graphql.GetPatientsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.GetPatientsQuery, Graphql.GetPatientsQueryVariables>(Graphql.GetPatientsDocument, options);};
+export type GetPatientsLazyQueryHookResult = ReturnType<typeof useGetPatientsLazyQuery>;
+
+export function useGetPatientsSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetPatientsQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetPatientsQuery, Graphql.GetPatientsQueryVariables>(Graphql.GetPatientsDocument, options);};
+export type GetPatientsSuspenseQueryHookResult = ReturnType<typeof useGetPatientsSuspenseQuery>;
+
+export function useConsultationHistoryQuery(baseOptions?: Apollo.useQuery.Options<Graphql.ConsultationHistoryQuery, Graphql.ConsultationHistoryQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.ConsultationHistoryQuery, Graphql.ConsultationHistoryQueryVariables>(Graphql.ConsultationHistoryDocument, options);};
+export type ConsultationHistoryQueryHookResult = ReturnType<typeof useConsultationHistoryQuery>;
+export type ConsultationHistoryQueryResult = Apollo.useQuery.Result<Graphql.ConsultationHistoryQuery, Graphql.ConsultationHistoryQueryVariables>;
+
+export function useConsultationHistoryLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.ConsultationHistoryQuery, Graphql.ConsultationHistoryQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.ConsultationHistoryQuery, Graphql.ConsultationHistoryQueryVariables>(Graphql.ConsultationHistoryDocument, options);};
+export type ConsultationHistoryLazyQueryHookResult = ReturnType<typeof useConsultationHistoryLazyQuery>;
+
+export function useConsultationHistorySuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.ConsultationHistoryQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.ConsultationHistoryQuery, Graphql.ConsultationHistoryQueryVariables>(Graphql.ConsultationHistoryDocument, options);};
+export type ConsultationHistorySuspenseQueryHookResult = ReturnType<typeof useConsultationHistorySuspenseQuery>;
+
+export function useGetWalletByDoctorQuery(baseOptions: Apollo.useQuery.Options<Graphql.GetWalletByDoctorQuery, Graphql.GetWalletByDoctorQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.GetWalletByDoctorQuery, Graphql.GetWalletByDoctorQueryVariables>(Graphql.GetWalletByDoctorDocument, options);};
+export type GetWalletByDoctorQueryHookResult = ReturnType<typeof useGetWalletByDoctorQuery>;
+export type GetWalletByDoctorQueryResult = Apollo.useQuery.Result<Graphql.GetWalletByDoctorQuery, Graphql.GetWalletByDoctorQueryVariables>;
+
+export function useGetWalletByDoctorLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.GetWalletByDoctorQuery, Graphql.GetWalletByDoctorQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.GetWalletByDoctorQuery, Graphql.GetWalletByDoctorQueryVariables>(Graphql.GetWalletByDoctorDocument, options);};
+export type GetWalletByDoctorLazyQueryHookResult = ReturnType<typeof useGetWalletByDoctorLazyQuery>;
+
+export function useGetWalletByDoctorSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetWalletByDoctorQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetWalletByDoctorQuery, Graphql.GetWalletByDoctorQueryVariables>(Graphql.GetWalletByDoctorDocument, options);};
+export type GetWalletByDoctorSuspenseQueryHookResult = ReturnType<typeof useGetWalletByDoctorSuspenseQuery>;
+
+export function useGetDoctorReviewsQuery(baseOptions: Apollo.useQuery.Options<Graphql.GetDoctorReviewsQuery, Graphql.GetDoctorReviewsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.GetDoctorReviewsQuery, Graphql.GetDoctorReviewsQueryVariables>(Graphql.GetDoctorReviewsDocument, options);};
+export type GetDoctorReviewsQueryHookResult = ReturnType<typeof useGetDoctorReviewsQuery>;
+export type GetDoctorReviewsQueryResult = Apollo.useQuery.Result<Graphql.GetDoctorReviewsQuery, Graphql.GetDoctorReviewsQueryVariables>;
+
+export function useGetDoctorReviewsLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.GetDoctorReviewsQuery, Graphql.GetDoctorReviewsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.GetDoctorReviewsQuery, Graphql.GetDoctorReviewsQueryVariables>(Graphql.GetDoctorReviewsDocument, options);};
+export type GetDoctorReviewsLazyQueryHookResult = ReturnType<typeof useGetDoctorReviewsLazyQuery>;
+
+export function useGetDoctorReviewsSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetDoctorReviewsQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetDoctorReviewsQuery, Graphql.GetDoctorReviewsQueryVariables>(Graphql.GetDoctorReviewsDocument, options);};
+export type GetDoctorReviewsSuspenseQueryHookResult = ReturnType<typeof useGetDoctorReviewsSuspenseQuery>;
+
+export function useGetActiveFaqItemsQuery(baseOptions?: Apollo.useQuery.Options<Graphql.GetActiveFaqItemsQuery, Graphql.GetActiveFaqItemsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.GetActiveFaqItemsQuery, Graphql.GetActiveFaqItemsQueryVariables>(Graphql.GetActiveFaqItemsDocument, options);};
+export type GetActiveFaqItemsQueryHookResult = ReturnType<typeof useGetActiveFaqItemsQuery>;
+export type GetActiveFaqItemsQueryResult = Apollo.useQuery.Result<Graphql.GetActiveFaqItemsQuery, Graphql.GetActiveFaqItemsQueryVariables>;
+
+export function useGetActiveFaqItemsLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.GetActiveFaqItemsQuery, Graphql.GetActiveFaqItemsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.GetActiveFaqItemsQuery, Graphql.GetActiveFaqItemsQueryVariables>(Graphql.GetActiveFaqItemsDocument, options);};
+export type GetActiveFaqItemsLazyQueryHookResult = ReturnType<typeof useGetActiveFaqItemsLazyQuery>;
+
+export function useGetActiveFaqItemsSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetActiveFaqItemsQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetActiveFaqItemsQuery, Graphql.GetActiveFaqItemsQueryVariables>(Graphql.GetActiveFaqItemsDocument, options);};
+export type GetActiveFaqItemsSuspenseQueryHookResult = ReturnType<typeof useGetActiveFaqItemsSuspenseQuery>;
+
+export function useInitiateUploadMutation(baseOptions?: Apollo.useMutation.Options<Graphql.InitiateUploadMutation, Graphql.InitiateUploadMutationVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useMutation<Graphql.InitiateUploadMutation, Graphql.InitiateUploadMutationVariables>(Graphql.InitiateUploadDocument, options);};
+export type InitiateUploadMutationHookResult = ReturnType<typeof useInitiateUploadMutation>;
+export type InitiateUploadMutationResult = Apollo.useMutation.Result<Graphql.InitiateUploadMutation>;
+
+export function useConfirmUploadMutation(baseOptions?: Apollo.useMutation.Options<Graphql.ConfirmUploadMutation, Graphql.ConfirmUploadMutationVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useMutation<Graphql.ConfirmUploadMutation, Graphql.ConfirmUploadMutationVariables>(Graphql.ConfirmUploadDocument, options);};
+export type ConfirmUploadMutationHookResult = ReturnType<typeof useConfirmUploadMutation>;
+export type ConfirmUploadMutationResult = Apollo.useMutation.Result<Graphql.ConfirmUploadMutation>;
+
+export function useGetViewUrlQuery(baseOptions: Apollo.useQuery.Options<Graphql.GetViewUrlQuery, Graphql.GetViewUrlQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.GetViewUrlQuery, Graphql.GetViewUrlQueryVariables>(Graphql.GetViewUrlDocument, options);};
+export type GetViewUrlQueryHookResult = ReturnType<typeof useGetViewUrlQuery>;
+export type GetViewUrlQueryResult = Apollo.useQuery.Result<Graphql.GetViewUrlQuery, Graphql.GetViewUrlQueryVariables>;
+
+export function useGetViewUrlLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.GetViewUrlQuery, Graphql.GetViewUrlQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.GetViewUrlQuery, Graphql.GetViewUrlQueryVariables>(Graphql.GetViewUrlDocument, options);};
+export type GetViewUrlLazyQueryHookResult = ReturnType<typeof useGetViewUrlLazyQuery>;
+
+export function useGetViewUrlSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetViewUrlQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetViewUrlQuery, Graphql.GetViewUrlQueryVariables>(Graphql.GetViewUrlDocument, options);};
+export type GetViewUrlSuspenseQueryHookResult = ReturnType<typeof useGetViewUrlSuspenseQuery>;
+
 export function useUpdateUserMutation(baseOptions?: Apollo.useMutation.Options<Graphql.UpdateUserMutation, Graphql.UpdateUserMutationVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useMutation<Graphql.UpdateUserMutation, Graphql.UpdateUserMutationVariables>(Graphql.UpdateUserDocument, options);};
 export type UpdateUserMutationHookResult = ReturnType<typeof useUpdateUserMutation>;
 export type UpdateUserMutationResult = Apollo.useMutation.Result<Graphql.UpdateUserMutation>;
@@ -63,3 +255,41 @@ export type GetUserLazyQueryHookResult = ReturnType<typeof useGetUserLazyQuery>;
 
 export function useGetUserSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetUserQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetUserQuery, Graphql.GetUserQueryVariables>(Graphql.GetUserDocument, options);};
 export type GetUserSuspenseQueryHookResult = ReturnType<typeof useGetUserSuspenseQuery>;
+
+export function useCreateWellnessProgramMutation(baseOptions?: Apollo.useMutation.Options<Graphql.CreateWellnessProgramMutation, Graphql.CreateWellnessProgramMutationVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useMutation<Graphql.CreateWellnessProgramMutation, Graphql.CreateWellnessProgramMutationVariables>(Graphql.CreateWellnessProgramDocument, options);};
+export type CreateWellnessProgramMutationHookResult = ReturnType<typeof useCreateWellnessProgramMutation>;
+export type CreateWellnessProgramMutationResult = Apollo.useMutation.Result<Graphql.CreateWellnessProgramMutation>;
+
+export function useUpdateWellnessProgramMutation(baseOptions?: Apollo.useMutation.Options<Graphql.UpdateWellnessProgramMutation, Graphql.UpdateWellnessProgramMutationVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useMutation<Graphql.UpdateWellnessProgramMutation, Graphql.UpdateWellnessProgramMutationVariables>(Graphql.UpdateWellnessProgramDocument, options);};
+export type UpdateWellnessProgramMutationHookResult = ReturnType<typeof useUpdateWellnessProgramMutation>;
+export type UpdateWellnessProgramMutationResult = Apollo.useMutation.Result<Graphql.UpdateWellnessProgramMutation>;
+
+export function useGetWellnessProgramQuery(baseOptions: Apollo.useQuery.Options<Graphql.GetWellnessProgramQuery, Graphql.GetWellnessProgramQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.GetWellnessProgramQuery, Graphql.GetWellnessProgramQueryVariables>(Graphql.GetWellnessProgramDocument, options);};
+export type GetWellnessProgramQueryHookResult = ReturnType<typeof useGetWellnessProgramQuery>;
+export type GetWellnessProgramQueryResult = Apollo.useQuery.Result<Graphql.GetWellnessProgramQuery, Graphql.GetWellnessProgramQueryVariables>;
+
+export function useGetWellnessProgramLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.GetWellnessProgramQuery, Graphql.GetWellnessProgramQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.GetWellnessProgramQuery, Graphql.GetWellnessProgramQueryVariables>(Graphql.GetWellnessProgramDocument, options);};
+export type GetWellnessProgramLazyQueryHookResult = ReturnType<typeof useGetWellnessProgramLazyQuery>;
+
+export function useGetWellnessProgramSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetWellnessProgramQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetWellnessProgramQuery, Graphql.GetWellnessProgramQueryVariables>(Graphql.GetWellnessProgramDocument, options);};
+export type GetWellnessProgramSuspenseQueryHookResult = ReturnType<typeof useGetWellnessProgramSuspenseQuery>;
+
+export function useGetWellnessProgramsQuery(baseOptions: Apollo.useQuery.Options<Graphql.GetWellnessProgramsQuery, Graphql.GetWellnessProgramsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.GetWellnessProgramsQuery, Graphql.GetWellnessProgramsQueryVariables>(Graphql.GetWellnessProgramsDocument, options);};
+export type GetWellnessProgramsQueryHookResult = ReturnType<typeof useGetWellnessProgramsQuery>;
+export type GetWellnessProgramsQueryResult = Apollo.useQuery.Result<Graphql.GetWellnessProgramsQuery, Graphql.GetWellnessProgramsQueryVariables>;
+
+export function useGetWellnessProgramsLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.GetWellnessProgramsQuery, Graphql.GetWellnessProgramsQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.GetWellnessProgramsQuery, Graphql.GetWellnessProgramsQueryVariables>(Graphql.GetWellnessProgramsDocument, options);};
+export type GetWellnessProgramsLazyQueryHookResult = ReturnType<typeof useGetWellnessProgramsLazyQuery>;
+
+export function useGetWellnessProgramsSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetWellnessProgramsQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetWellnessProgramsQuery, Graphql.GetWellnessProgramsQueryVariables>(Graphql.GetWellnessProgramsDocument, options);};
+export type GetWellnessProgramsSuspenseQueryHookResult = ReturnType<typeof useGetWellnessProgramsSuspenseQuery>;
+
+export function useGetLifestyleCategoriesQuery(baseOptions?: Apollo.useQuery.Options<Graphql.GetLifestyleCategoriesQuery, Graphql.GetLifestyleCategoriesQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useQuery<Graphql.GetLifestyleCategoriesQuery, Graphql.GetLifestyleCategoriesQueryVariables>(Graphql.GetLifestyleCategoriesDocument, options);};
+export type GetLifestyleCategoriesQueryHookResult = ReturnType<typeof useGetLifestyleCategoriesQuery>;
+export type GetLifestyleCategoriesQueryResult = Apollo.useQuery.Result<Graphql.GetLifestyleCategoriesQuery, Graphql.GetLifestyleCategoriesQueryVariables>;
+
+export function useGetLifestyleCategoriesLazyQuery(baseOptions?: Apollo.useLazyQuery.Options<Graphql.GetLifestyleCategoriesQuery, Graphql.GetLifestyleCategoriesQueryVariables>) {const options = { ...defaultOptions, ...baseOptions };return Apollo.useLazyQuery<Graphql.GetLifestyleCategoriesQuery, Graphql.GetLifestyleCategoriesQueryVariables>(Graphql.GetLifestyleCategoriesDocument, options);};
+export type GetLifestyleCategoriesLazyQueryHookResult = ReturnType<typeof useGetLifestyleCategoriesLazyQuery>;
+
+export function useGetLifestyleCategoriesSuspenseQuery(baseOptions: Apollo.SkipToken | Apollo.useSuspenseQuery.Options<Graphql.GetLifestyleCategoriesQueryVariables>) {const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };return Apollo.useSuspenseQuery<Graphql.GetLifestyleCategoriesQuery, Graphql.GetLifestyleCategoriesQueryVariables>(Graphql.GetLifestyleCategoriesDocument, options);};
+export type GetLifestyleCategoriesSuspenseQueryHookResult = ReturnType<typeof useGetLifestyleCategoriesSuspenseQuery>;
