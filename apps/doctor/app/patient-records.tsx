@@ -10,7 +10,8 @@ import {
 import { useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useColorScheme, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useBottomSheetInsets } from '@repo/ui/hooks';
 
 const ACCENT = '#20BEB8';
 
@@ -63,7 +64,7 @@ export default function PatientRecordsScreen() {
   const theme = useTheme();
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const insets = useSafeAreaInsets();
+  const { bottomInset, contentPaddingBottom } = useBottomSheetInsets();
   const filterSheetRef = useRef<BottomSheetModal>(null);
   const filterSnapPoints = useMemo(() => ['62%'], []);
 
@@ -193,9 +194,9 @@ export default function PatientRecordsScreen() {
         backdropComponent={renderFilterBackdrop}
         handleIndicatorStyle={styles.sheetHandle}
         backgroundStyle={[styles.sheetBg, { backgroundColor: theme.card }]}
-        bottomInset={Math.max(insets.bottom, 12)}>
+        bottomInset={bottomInset}>
         <BottomSheetView
-          style={[styles.sheetInner, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          style={[styles.sheetInner, { paddingBottom: contentPaddingBottom }]}>
           <View style={styles.sheetHeader}>
             <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>Filter records</Text>
             <Pressable

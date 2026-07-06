@@ -1,0 +1,49 @@
+query GetCreatorContents($filter: CreatorContentFilterInput, $paginationArgs: OffsetPaginationArgs!) {
+  getCreatorContents(filter: $filter, paginationArgs: $paginationArgs) {
+    pageInfo {
+      currentPage
+      itemCount
+      itemsPerPage
+      totalItems
+      totalPages
+    }
+    metaData
+    items {
+      id
+      title
+      body
+      contentType
+      accessLevel
+      publishStatus
+      viewCount
+      createdAt
+      updatedAt
+      category {
+        id
+        name
+        slug
+        iconUrl
+      }
+      doctor {
+        id
+        averageRating
+        totalReviews
+        user {
+          id
+          firstName
+          lastName
+          profilePhoto
+        }
+      }
+      media {
+        id
+        caption
+        sortOrder
+        file {
+          id
+          key
+        }
+      }
+    }
+  }
+}

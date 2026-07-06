@@ -1,3 +1,5 @@
+import { WellnessProgramBottomSheet } from '@/components/WellnessProgramBottomSheet';
+import { WellnessProgramCoverImage } from '@/components/WellnessProgramCoverImage';
 import { fonts } from '@/config/fonts';
 import { useTheme } from '@/config/theme';
 import {
@@ -5,19 +7,21 @@ import {
   BottomSheetModal,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
-import { useColorScheme } from '@repo/ui/hooks';
+import { useBottomSheetInsets, useColorScheme } from '@repo/ui/hooks';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
   Types,
   useAppointments,
   useDoctor,
   useDoctorReviews,
+  useWellnessPrograms,
   type DoctorAppointment,
   type DoctorProfile,
   type DoctorReviewItem,
+  type WellnessProgramListItem,
 } from '@repo/ui/graphql';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   ActivityIndicator,
@@ -29,7 +33,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { appointmentTime, recordRecord, notifications } from '@/config/svg';
+import { appointmentTime, recordRecord, notifications, addPost } from '@/config/svg';
 
 import { SvgXml } from 'react-native-svg';
 
@@ -191,6 +195,24 @@ function formatReviewWhen(createdAt: string) {
   });
 }
 
+const WELLNESS_CARD_BACKGROUNDS = ['#D2F2F0', '#E9F0FF', '#FFDCDC', '#F0E2D9'];
+
+function formatWellnessEnum(value: string) {
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function formatWellnessProgramMeta(program: WellnessProgramListItem) {
+  return [
+    `${program.durationWeeks} wk`,
+    formatWellnessEnum(program.difficulty),
+    formatWellnessEnum(program.publishStatus),
+  ].join(' · ');
+}
+
 function mapReviewToRow(review: DoctorReviewItem): ReviewRow {
   return {
     id: review.id,
@@ -230,6 +252,25 @@ export default function HomeScreen() {
     doctorId: doctor?.id,
     skip: !doctor?.id,
   });
+
+  const {
+    wellnessPrograms,
+    loading: wellnessProgramsLoading,
+    error: wellnessProgramsError,
+    refetch: refetchWellnessPrograms,
+  } = useWellnessPrograms({
+    limit: 20,
+    page: 1,
+  });
+
+  const [selectedWellnessProgramId, setSelectedWellnessProgramId] = useState<string | null>(null);
+  const [wellnessSheetVisible, setWellnessSheetVisible] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refetchWellnessPrograms();
+    }, [refetchWellnessPrograms]),
+  );
 
   const reviewRows = useMemo(() => reviews.map(mapReviewToRow), [reviews]);
 
@@ -291,6 +332,21 @@ export default function HomeScreen() {
     );
   }, [doctor?.id, reviews, reviewsLoading, reviewsError, reviewsData]);
 
+  useEffect(() => {
+    console.log(
+      '[doctor-home] getWellnessPrograms response:\n' +
+        JSON.stringify(
+          {
+            wellnessPrograms,
+            loading: wellnessProgramsLoading,
+            error: wellnessProgramsError?.message ?? null,
+          },
+          null,
+          2,
+        ),
+    );
+  }, [wellnessPrograms, wellnessProgramsLoading, wellnessProgramsError]);
+
   const today = useMemo(() => new Date(), []);
 
   const todayScheduleItems = useMemo(
@@ -334,6 +390,7 @@ export default function HomeScreen() {
   }, [todayScheduleItems.length, upcomingScheduleItems.length]);
 
   const isDark = useColorScheme() === 'dark';
+  const { bottomInset, contentPaddingBottom } = useBottomSheetInsets();
   const consultationSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ['45%'], []);
   const colorScheme = useColorScheme();
@@ -382,6 +439,14 @@ export default function HomeScreen() {
                 </Text>
               
             </View>
+            <View style={{display:"flex", flexDirection:"row", gap:10}}>
+              <Pressable
+                style={{width:44, height:44, borderRadius:50, borderWidth:1, borderColor: "#64748B", justifyContent:"center", alignItems:"center", backgroundColor:"white"}}
+                accessibilityRole="button"
+                accessibilityLabel="Create wellness program"
+                onPress={() => router.push('/create-wellness-program')}>
+                <SvgXml xml={addPost} width={20} height={20} />
+              </Pressable>
             <Pressable
               hitSlop={12}
               style={styles.bellWrap}
@@ -390,6 +455,8 @@ export default function HomeScreen() {
               onPress={() => router.push('/notifications')}>
               <SvgXml xml={notifications} width={20} height={20} />
             </Pressable>
+            </View>
+           
           </View>
 
           {/* Quick actions */}
@@ -401,7 +468,7 @@ export default function HomeScreen() {
                 <SvgXml xml={recordRecord} width={20} height={20} />
               </View>
               <View style={styles.quickCardBody}>
-                <Text style={[styles.quickTitle, { color: colorScheme === "dark" ? "#64748B" : "black" }]}>Start Consultation</Text>
+                <Text style={[styles.quickTitle, { color: colorScheme === "dark" ? "#64748B" : "black" }]}>Start Consultation </Text>
                 <Text style={[styles.quickSub, { color: theme.textSecondary }]}>2 patients waiting</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
@@ -421,6 +488,83 @@ export default function HomeScreen() {
               <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
             </Pressable>
           </View>
+
+          {/* Wellness programs */}
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
+              My wellness programs
+            </Text>
+            <Pressable
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Create wellness program"
+              onPress={() => router.push('/create-wellness-program')}>
+              <Text style={[styles.seeAll, { color: theme.accent }]}>Create</Text>
+            </Pressable>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.wellnessRow}>
+            {wellnessProgramsLoading ? (
+              <View style={[styles.wellnessStatusCard, { backgroundColor: theme.card }]}>
+                <ActivityIndicator size="small" color={theme.accent} />
+              </View>
+            ) : wellnessProgramsError ? (
+              <View style={[styles.wellnessStatusCard, { backgroundColor: theme.card }]}>
+                <Text style={[styles.wellnessStatusText, { color: theme.textSecondary }]}>
+                  Unable to load wellness programs.
+                </Text>
+              </View>
+            ) : wellnessPrograms.length === 0 ? (
+              <View style={[styles.wellnessStatusCard, { backgroundColor: theme.card }]}>
+                <Text style={[styles.wellnessStatusText, { color: theme.textSecondary }]}>
+                  No wellness programs yet. Tap Create to add one.
+                </Text>
+              </View>
+            ) : (
+              wellnessPrograms.map((program, index) => (
+                <Pressable
+                  key={program.id}
+                  onPress={() => {
+                    setSelectedWellnessProgramId(program.id);
+                    setWellnessSheetVisible(true);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={program.title}
+                  style={[styles.wellnessCard, { backgroundColor: theme.card }]}>
+                  <WellnessProgramCoverImage
+                    coverKey={program.coverImage?.key}
+                    fallbackSource={
+                      program.category?.iconUrl
+                        ? { uri: program.category.iconUrl }
+                        : require('../../assets/images/icon.png')
+                    }
+                    containerStyle={[
+                      styles.wellnessCardImageWrap,
+                      {
+                        backgroundColor:
+                          WELLNESS_CARD_BACKGROUNDS[index % WELLNESS_CARD_BACKGROUNDS.length],
+                      },
+                    ]}
+                    coverImageStyle={styles.wellnessCardCoverImage}
+                    fallbackImageStyle={styles.wellnessCardImage}
+                    loaderColor={theme.accent}
+                  />
+                  <Text
+                    style={[styles.wellnessCardTitle, { color: theme.textPrimary }]}
+                    numberOfLines={2}>
+                    {program.title}
+                  </Text>
+                  <Text
+                    style={[styles.wellnessCardMeta, { color: theme.textSecondary }]}
+                    numberOfLines={1}>
+                    {formatWellnessProgramMeta(program)}
+                  </Text>
+                </Pressable>
+              ))
+            )}
+          </ScrollView>
 
           {/* Today's schedule */}
           <View style={styles.sectionHeader}>
@@ -546,15 +690,26 @@ export default function HomeScreen() {
         </ScrollView>
       </SafeAreaView>
 
+      <WellnessProgramBottomSheet
+        visible={wellnessSheetVisible}
+        programId={selectedWellnessProgramId}
+        onClose={() => {
+          setWellnessSheetVisible(false);
+          setSelectedWellnessProgramId(null);
+        }}
+      />
+
       <BottomSheetModal
         ref={consultationSheetRef}
         index={0}
         snapPoints={snapPoints}
         backdropComponent={renderBackdrop}
         enablePanDownToClose
+        bottomInset={bottomInset}
         handleIndicatorStyle={styles.sheetHandle}
         backgroundStyle={[styles.sheetContainer, { backgroundColor: theme.card }]}>
-        <BottomSheetView style={styles.sheetContent}>
+        <BottomSheetView
+          style={[styles.sheetContent, { paddingBottom: contentPaddingBottom }]}>
           <View style={styles.sheetHeader}>
             <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>
               {scheduleMode === 'today' ? "Today's appointments" : 'Upcoming appointments'}
@@ -659,6 +814,53 @@ const styles = StyleSheet.create({
   quickRow: {
     gap: 12,
     marginBottom: 24,
+  },
+  wellnessRow: {
+    gap: 12,
+    paddingBottom: 4,
+    marginBottom: 24,
+  },
+  wellnessStatusCard: {
+    minWidth: 220,
+    minHeight: 120,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  wellnessStatusText: {
+    fontSize: 14,
+    fontFamily: fonts.regular,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  wellnessCard: {
+    width: 160,
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+  },
+  wellnessCardImageWrap: {
+    height: 72,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wellnessCardCoverImage: {
+    borderRadius: 10,
+  },
+  wellnessCardImage: {
+    width: 40,
+    height: 40,
+  },
+  wellnessCardTitle: {
+    fontSize: 14,
+    fontFamily: fonts.semiBold,
+    lineHeight: 18,
+  },
+  wellnessCardMeta: {
+    fontSize: 12,
+    fontFamily: fonts.regular,
   },
   quickCard: {
     flexDirection: 'row',

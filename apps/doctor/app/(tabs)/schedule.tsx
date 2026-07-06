@@ -8,6 +8,7 @@ import BottomSheet, {
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
 import { Hooks } from '@repo/ui/graphql';
+import { useBottomSheetInsets } from '@repo/ui/hooks';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -450,6 +451,7 @@ const ADD_SHEET_ACTIONS = [
 
 export default function ScheduleScreen() {
   const theme = useTheme();
+  const { bottomInset, contentPaddingBottom } = useBottomSheetInsets();
   const detailsSheetRef = useRef<BottomSheet>(null);
   const addSheetRef = useRef<BottomSheet>(null);
   const detailsSnapPoints = useMemo(() => ['72%'], []);
@@ -886,9 +888,11 @@ export default function ScheduleScreen() {
         backdropComponent={renderBackdrop}
         backgroundStyle={styles.sheetBackground}
         handleIndicatorStyle={styles.sheetHandle}
+        bottomInset={bottomInset}
         onChange={onAddSheetChange}>
         {addSheetMode === 'menu' ? (
-          <BottomSheetView style={styles.addSheetContent}>
+          <BottomSheetView
+            style={[styles.addSheetContent, { paddingBottom: contentPaddingBottom }]}>
             <Text style={[styles.addSheetTitle, { color: theme.textPrimary }]}>
               Add to schedule
             </Text>
@@ -930,7 +934,10 @@ export default function ScheduleScreen() {
           </BottomSheetView>
         ) : (
           <BottomSheetScrollView
-            contentContainerStyle={styles.availabilitySheetContent}
+            contentContainerStyle={[
+              styles.availabilitySheetContent,
+              { paddingBottom: contentPaddingBottom },
+            ]}
             keyboardShouldPersistTaps='handled'
             showsVerticalScrollIndicator={false}>
             <View style={styles.availabilityHeader}>
@@ -1053,10 +1060,14 @@ export default function ScheduleScreen() {
         backdropComponent={renderBackdrop}
         backgroundStyle={styles.sheetBackground}
         handleIndicatorStyle={styles.sheetHandle}
+        bottomInset={bottomInset}
         onClose={() => setSelectedAppointment(null)}>
         <ScrollView
           style={styles.sheetScroll}
-          contentContainerStyle={styles.sheetContent}
+          contentContainerStyle={[
+            styles.sheetContent,
+            { paddingBottom: contentPaddingBottom },
+          ]}
           showsVerticalScrollIndicator={false}>
           <Text style={styles.sheetTitle}>Appointment Details</Text>
 

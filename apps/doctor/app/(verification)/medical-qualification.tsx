@@ -27,6 +27,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Types } from '@repo/ui/graphql';
+import { useBottomSheetInsets } from '@repo/ui/hooks';
 import { showMessage } from 'react-native-flash-message';
 
 const MIN_YEAR = 1970;
@@ -59,6 +60,7 @@ export default function MedicalQualificationScreen() {
   const [uploadingCertificate, setUploadingCertificate] = useState(false);
   const [uploadingLicense, setUploadingLicense] = useState(false);
   const colorScheme = useColorScheme();
+  const { bottomInset, contentPaddingBottom } = useBottomSheetInsets();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const yearOptions = useMemo(() => buildYearOptions(), []);
   const snapPoints = useMemo(() => ['52%', '72%'], []);
@@ -455,7 +457,8 @@ export default function MedicalQualificationScreen() {
         enablePanDownToClose
         backdropComponent={renderBackdrop}
         backgroundStyle={{ backgroundColor: theme.card }}
-        handleIndicatorStyle={{ backgroundColor: theme.divider }}>
+        handleIndicatorStyle={{ backgroundColor: theme.divider }}
+        bottomInset={bottomInset}>
         <View style={styles.sheetHeader}>
           <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>
             Graduation year
@@ -471,7 +474,10 @@ export default function MedicalQualificationScreen() {
           numColumns={YEAR_COLUMNS}
           columnWrapperStyle={styles.yearGridRow}
           bounces={false}
-          contentContainerStyle={styles.yearListContent}
+          contentContainerStyle={[
+            styles.yearListContent,
+            { paddingBottom: contentPaddingBottom },
+          ]}
           style={styles.yearList}
         />
       </BottomSheet>

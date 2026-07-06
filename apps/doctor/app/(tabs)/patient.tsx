@@ -4,10 +4,17 @@ import { useTheme } from '@/config/theme';
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
+  BottomSheetScrollView,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
-import { usePatients, type DoctorPatient } from '@repo/ui/graphql';
+import {
+  usePatientLazy,
+  usePatients,
+  type DoctorPatient,
+  type PatientDetail,
+} from '@repo/ui/graphql';
+import { useBottomSheetInsets } from '@repo/ui/hooks';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -102,11 +109,69 @@ function mapApiPatient(patient: DoctorPatient): PatientListItem {
   };
 }
 
+function formatEnumLabel(value?: string | null): string {
+  if (!value) return '—';
+  return value.replace(/_/g, ' ');
+}
+
+function calculateBmi(
+  weightKg?: number | null,
+  heightCm?: number | null,
+): string {
+  if (!weightKg || !heightCm || heightCm <= 0) return '—';
+  const heightM = heightCm / 100;
+  return (weightKg / (heightM * heightM)).toFixed(1);
+}
+
+function buildPatientVitals(patient: PatientDetail | null) {
+  if (!patient) return [];
+
+  const items: { label: string; value: string }[] = [];
+
+  if (patient.heightCm != null) {
+    items.push({ label: 'Height', value: `${patient.heightCm} cm` });
+  }
+  if (patient.weightKg != null) {
+    items.push({ label: 'Weight', value: `${patient.weightKg} kg` });
+  }
+
+  const bmi = calculateBmi(patient.weightKg, patient.heightCm);
+  if (bmi !== '—') {
+    items.push({ label: 'BMI', value: bmi });
+  }
+  if (patient.bloodGroup) {
+    items.push({
+      label: 'Blood group',
+      value: formatEnumLabel(patient.bloodGroup),
+    });
+  }
+  if (patient.genotype) {
+    items.push({ label: 'Genotype', value: patient.genotype });
+  }
+
+  return items;
+}
+
+function formatPatientAddress(patient: PatientDetail | null): string {
+  if (!patient) return '—';
+
+  const parts = [
+    patient.address,
+    patient.city,
+    patient.state,
+    patient.country,
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(', ') : '—';
+}
+
 export default function PatientsScreen() {
   const theme = useTheme();
+  const { bottomInset, contentPaddingBottom } = useBottomSheetInsets();
   const [activeTab, setActiveTab] =
     useState<(typeof TABS)[number]>('All patients');
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(
     null,
   );
@@ -118,22 +183,26 @@ export default function PatientsScreen() {
   const notesSnapPoints = useMemo(() => ['55%'], []);
   const profileSnapPoints = useMemo(() => ['90%'], []);
 
-  const { patients: apiPatients, loading, error, refetch } = usePatients();
-
   useEffect(() => {
-    console.log(
-      'patients response\n' +
-        JSON.stringify(
-          {
-            patients: apiPatients,
-            loading,
-            error: error?.message ?? null,
-          },
-          null,
-          2,
-        ),
-    );
-  }, [apiPatients, error, loading]);
+    const timeout = setTimeout(() => {
+      setDebouncedQuery(query.trim());
+    }, 350);
+
+    return () => clearTimeout(timeout);
+  }, [query]);
+
+  const { patients: apiPatients, loading, error, refetch } = usePatients({
+    limit: 50,
+    page: 1,
+    filter: debouncedQuery ? { query: debouncedQuery } : undefined,
+  });
+
+  const {
+    fetchPatient,
+    patient: patientDetail,
+    loading: patientDetailLoading,
+    error: patientDetailError,
+  } = usePatientLazy();
 
   const patients = useMemo(
     () => apiPatients.map(mapApiPatient),
@@ -154,10 +223,40 @@ export default function PatientsScreen() {
     notesSheetRef.current?.present();
   }, []);
 
-  const openProfileSheet = useCallback((patient: PatientListItem) => {
-    setSelectedPatient(patient);
-    profileSheetRef.current?.present();
-  }, []);
+  const openProfileSheet = useCallback(
+    (patient: PatientListItem) => {
+      setSelectedPatient(patient);
+      profileSheetRef.current?.present();
+      void fetchPatient({ variables: { id: patient.id } });
+    },
+    [fetchPatient],
+  );
+
+  const profileVitals = useMemo(
+    () => buildPatientVitals(patientDetail),
+    [patientDetail],
+  );
+
+  const profileUser = patientDetail?.user;
+  const profileName = profileUser
+    ? getPatientDisplayName(profileUser)
+    : (selectedPatient?.name ?? 'Patient');
+  const profileMeta = profileUser
+    ? getPatientMeta(profileUser)
+    : (selectedPatient?.meta ?? '—');
+  const profileAvatar = profileUser
+    ? getPatientAvatar(profileUser.profilePhoto)
+    : (selectedPatient?.avatar ?? DEFAULT_AVATAR);
+  const profileEmail =
+    profileUser?.email ?? selectedPatient?.email ?? '—';
+  const profilePhone =
+    profileUser?.phoneNumber?.trim() ||
+    selectedPatient?.phone ||
+    '—';
+  const profileCreatedAt =
+    patientDetail?.createdAt ?? selectedPatient?.createdAt;
+  const profileUpdatedAt =
+    patientDetail?.updatedAt ?? selectedPatient?.updatedAt;
 
   const renderBackdrop = (
     props: React.ComponentProps<typeof BottomSheetBackdrop>,
@@ -169,18 +268,6 @@ export default function PatientsScreen() {
       opacity={0.35}
     />
   );
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return patients;
-    return patients.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.email.toLowerCase().includes(q) ||
-        p.phone.toLowerCase().includes(q) ||
-        p.id.toLowerCase().includes(q),
-    );
-  }, [patients, query]);
 
   return (
     <SafeAreaView
@@ -234,7 +321,7 @@ export default function PatientsScreen() {
           ]}>
           <Ionicons
             name="search-outline"
-            size={24}
+            size={20}
             color={theme.textMuted}
             style={styles.searchIcon}
           />
@@ -243,6 +330,11 @@ export default function PatientsScreen() {
             placeholderTextColor={theme.textMuted}
             value={query}
             onChangeText={setQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            underlineColorAndroid="transparent"
+            textAlignVertical="center"
             style={[styles.searchInput, { color: theme.textPrimary }]}
           />
         </View>
@@ -273,26 +365,20 @@ export default function PatientsScreen() {
               resizeMode="contain"
             />
             <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>
-              No patient found for doctor
+              {debouncedQuery ? 'No patients found' : 'No patient found for doctor'}
             </Text>
             <Text style={[styles.stateText, { color: theme.textSecondary }]}>
-              Patients linked to your practice will appear here.
+              {debouncedQuery
+                ? 'Try a different name, email, or phone number.'
+                : 'Patients linked to your practice will appear here.'}
             </Text>
           </View>
         ) : (
         <FlatList
-          data={filtered}
+          data={patients}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={[
-            styles.listContent,
-            filtered.length === 0 && styles.listContentEmpty,
-          ]}
+          contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <Text style={[styles.stateText, { color: theme.textSecondary }]}>
-              No patients match your search.
-            </Text>
-          }
           renderItem={({ item }) => {
             const isExpanded = expandedPatientId === item.id;
 
@@ -468,9 +554,11 @@ export default function PatientsScreen() {
         snapPoints={notesSnapPoints}
         backdropComponent={renderBackdrop}
         enablePanDownToClose
+        bottomInset={bottomInset}
         handleIndicatorStyle={styles.sheetHandle}
         backgroundStyle={[styles.sheetContainer, { backgroundColor: theme.card }]}>
-        <BottomSheetView style={styles.sheetContent}>
+        <BottomSheetView
+          style={[styles.sheetContent, { paddingBottom: contentPaddingBottom }]}>
           <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>
             Consultation notes
           </Text>
@@ -528,27 +616,40 @@ export default function PatientsScreen() {
         snapPoints={profileSnapPoints}
         backdropComponent={renderBackdrop}
         enablePanDownToClose
+        bottomInset={bottomInset}
         handleIndicatorStyle={styles.sheetHandle}
         backgroundStyle={[
           styles.sheetContainer,
           { backgroundColor: theme.background },
         ]}>
-        <BottomSheetView style={styles.profileSheetContent}>
+        <BottomSheetScrollView
+          contentContainerStyle={[
+            styles.profileSheetContent,
+            { paddingBottom: contentPaddingBottom },
+          ]}
+          showsVerticalScrollIndicator={false}>
           <View style={styles.profileTop}>
             <Text style={[styles.profileHeaderTitle, { color: theme.textPrimary }]}>
               Patient profile
             </Text>
-            <Image
-              source={selectedPatient?.avatar ?? DEFAULT_AVATAR}
-              style={styles.profileAvatar}
-            />
+            <Image source={profileAvatar} style={styles.profileAvatar} />
             <Text style={[styles.profileName, { color: theme.textPrimary }]}>
-              {selectedPatient?.name ?? 'Patient'}
+              {profileName}
             </Text>
             <Text style={[styles.profileMeta, { color: theme.textSecondary }]}>
-              {selectedPatient?.meta ?? '—'}
+              {profileMeta}
             </Text>
           </View>
+
+          {patientDetailLoading && !patientDetail ? (
+            <ActivityIndicator color={theme.accent} style={styles.profileLoader} />
+          ) : null}
+
+          {patientDetailError ? (
+            <Text style={[styles.profileError, { color: theme.textSecondary }]}>
+              Could not load full profile. Showing basic details.
+            </Text>
+          ) : null}
 
           <View style={[styles.profileStatsCard, { backgroundColor: theme.card }]}>
             <View style={styles.detailRow}>
@@ -560,8 +661,8 @@ export default function PatientsScreen() {
                   </Text>
                 </View>
                 <Text style={[styles.detailDate, { color: theme.textPrimary }]}>
-                  {selectedPatient
-                    ? formatPatientDate(selectedPatient.updatedAt)
+                  {profileUpdatedAt
+                    ? formatPatientDate(profileUpdatedAt)
                     : '—'}
                 </Text>
               </View>
@@ -573,8 +674,8 @@ export default function PatientsScreen() {
                   </Text>
                 </View>
                 <Text style={[styles.detailDate, { color: theme.textPrimary }]}>
-                  {selectedPatient
-                    ? formatPatientDate(selectedPatient.createdAt)
+                  {profileCreatedAt
+                    ? formatPatientDate(profileCreatedAt)
                     : '—'}
                 </Text>
               </View>
@@ -590,36 +691,122 @@ export default function PatientsScreen() {
             </View>
           </View>
 
-          <View style={[styles.profileSectionCard, { backgroundColor: theme.card }]}>
-            <Text style={[styles.profileSectionTitle, { color: theme.textPrimary }]}>Vital signs</Text>
-            <View style={styles.vitalsRow}>
-              <View style={styles.vitalItem}>
-                <Text style={[styles.vitalValue, { color: theme.textPrimary }]}>120/80</Text>
-                <Text style={[styles.vitalLabel, { color: theme.textSecondary }]}>Blood Pressure</Text>
-              </View>
-              <View style={styles.vitalItem}>
-                <Text style={[styles.vitalValue, { color: theme.textPrimary }]}>24.5</Text>
-                <Text style={[styles.vitalLabel, { color: theme.textSecondary }]}>BMI</Text>
+          {profileVitals.length > 0 ? (
+            <View style={[styles.profileSectionCard, { backgroundColor: theme.card }]}>
+              <Text style={[styles.profileSectionTitle, { color: theme.textPrimary }]}>
+                Vital signs
+              </Text>
+              <View style={styles.vitalsGrid}>
+                {profileVitals.map((vital) => (
+                  <View key={vital.label} style={styles.vitalItem}>
+                    <Text style={[styles.vitalValue, { color: theme.textPrimary }]}>
+                      {vital.value}
+                    </Text>
+                    <Text style={[styles.vitalLabel, { color: theme.textSecondary }]}>
+                      {vital.label}
+                    </Text>
+                  </View>
+                ))}
               </View>
             </View>
-          </View>
+          ) : null}
+
+          {patientDetail?.allergies && patientDetail.allergies.length > 0 ? (
+            <View style={[styles.profileSectionCard, { backgroundColor: theme.card }]}>
+              <Text style={[styles.profileSectionTitle, { color: theme.textPrimary }]}>
+                Allergies
+              </Text>
+              {patientDetail.allergies.map((allergy) => (
+                <Text
+                  key={allergy}
+                  style={[styles.profileListItem, { color: theme.textSecondary }]}>
+                  • {allergy}
+                </Text>
+              ))}
+            </View>
+          ) : null}
+
+          {patientDetail?.currentMedications &&
+          patientDetail.currentMedications.length > 0 ? (
+            <View style={[styles.profileSectionCard, { backgroundColor: theme.card }]}>
+              <Text style={[styles.profileSectionTitle, { color: theme.textPrimary }]}>
+                Current medications
+              </Text>
+              {patientDetail.currentMedications.map((medication) => (
+                <Text
+                  key={medication}
+                  style={[styles.profileListItem, { color: theme.textSecondary }]}>
+                  • {medication}
+                </Text>
+              ))}
+            </View>
+          ) : null}
+
+          {patientDetail?.chronicConditions &&
+          patientDetail.chronicConditions.length > 0 ? (
+            <View style={[styles.profileSectionCard, { backgroundColor: theme.card }]}>
+              <Text style={[styles.profileSectionTitle, { color: theme.textPrimary }]}>
+                Chronic conditions
+              </Text>
+              {patientDetail.chronicConditions.map((condition) => (
+                <Text
+                  key={condition}
+                  style={[styles.profileListItem, { color: theme.textSecondary }]}>
+                  • {condition}
+                </Text>
+              ))}
+            </View>
+          ) : null}
 
           <View style={[styles.profileSectionCard, { backgroundColor: theme.card }]}>
-            <Text style={[styles.profileSectionTitle, { color: theme.textPrimary }]}>Contact Information</Text>
+            <Text style={[styles.profileSectionTitle, { color: theme.textPrimary }]}>
+              Contact Information
+            </Text>
             <View style={styles.contactRow}>
               <Ionicons name="call-outline" size={18} color={theme.textSecondary} />
               <Text style={[styles.contactValue, { color: theme.textSecondary }]}>
-                {selectedPatient?.phone ?? '—'}
+                {profilePhone}
               </Text>
             </View>
             <View style={styles.contactRow}>
               <Ionicons name="mail-outline" size={18} color={theme.textSecondary} />
               <Text style={[styles.contactValue, { color: theme.textSecondary }]}>
-                {selectedPatient?.email ?? '—'}
+                {profileEmail}
+              </Text>
+            </View>
+            <View style={styles.contactRow}>
+              <Ionicons name="location-outline" size={18} color={theme.textSecondary} />
+              <Text style={[styles.contactValue, { color: theme.textSecondary }]}>
+                {formatPatientAddress(patientDetail)}
               </Text>
             </View>
           </View>
-        </BottomSheetView>
+
+          {patientDetail?.emergencyContactName ||
+          patientDetail?.emergencyContactPhone ? (
+            <View style={[styles.profileSectionCard, { backgroundColor: theme.card }]}>
+              <Text style={[styles.profileSectionTitle, { color: theme.textPrimary }]}>
+                Emergency contact
+              </Text>
+              {patientDetail.emergencyContactName ? (
+                <Text style={[styles.emergencyText, { color: theme.textPrimary }]}>
+                  {patientDetail.emergencyContactName}
+                  {patientDetail.emergencyContactRelationship
+                    ? ` (${patientDetail.emergencyContactRelationship})`
+                    : ''}
+                </Text>
+              ) : null}
+              {patientDetail.emergencyContactPhone ? (
+                <View style={styles.contactRow}>
+                  <Ionicons name="call-outline" size={18} color={theme.textSecondary} />
+                  <Text style={[styles.contactValue, { color: theme.textSecondary }]}>
+                    {patientDetail.emergencyContactPhone}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+        </BottomSheetScrollView>
       </BottomSheetModal>
     </SafeAreaView>
   );
@@ -667,9 +854,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    minHeight: 48,
     marginBottom: 16,
-    height:48
   },
   searchIcon: {
     marginRight: 8,
@@ -677,7 +863,11 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontFamily: fonts.regular,
-    fontSize: 14,
+    fontSize: 16,
+    lineHeight: Platform.select({ android: 22, ios: 20, default: 20 }),
+    paddingVertical: Platform.select({ android: 10, ios: 12, default: 10 }),
+    paddingHorizontal: 0,
+    minHeight: Platform.select({ android: 40, ios: 36, default: 40 }),
   },
   listContent: {
     paddingBottom: 24,
@@ -967,8 +1157,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
   },
+  vitalsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
   vitalItem: {
-    flex: 1,
+    width: '48%',
     borderRadius: 10,
     backgroundColor: '#F8FAFC',
     padding: 10,
@@ -981,6 +1176,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: fonts.regular,
     marginTop: 2,
+  },
+  profileListItem: {
+    fontSize: 14,
+    fontFamily: fonts.regular,
+    lineHeight: 22,
+  },
+  profileLoader: {
+    marginVertical: 8,
+  },
+  profileError: {
+    fontSize: 13,
+    fontFamily: fonts.regular,
+    textAlign: 'center',
   },
   emergencyText: {
     marginTop: 6,

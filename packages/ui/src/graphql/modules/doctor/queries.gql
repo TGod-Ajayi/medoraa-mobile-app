@@ -196,6 +196,39 @@ query GetCommonSymptom($id: ID!) {
   }
 }
 
+query GetPatient($id: ID!) {
+  patient(id: $id) {
+    id
+    address
+    allergies
+    bloodGroup
+    chronicConditions
+    city
+    country
+    createdAt
+    currentMedications
+    emergencyContactName
+    emergencyContactPhone
+    emergencyContactRelationship
+    genotype
+    heightCm
+    maritalStatus
+    state
+    updatedAt
+    weightKg
+    user {
+      id
+      firstName
+      lastName
+      email
+      phoneNumber
+      profilePhoto
+      dateOfBirth
+      gender
+    }
+  }
+}
+
 query GetPatients($filter: PatientFilterInput, $paginationArgs: OffsetPaginationArgs!) {
   patients(filter: $filter, paginationArgs: $paginationArgs) {
     items {

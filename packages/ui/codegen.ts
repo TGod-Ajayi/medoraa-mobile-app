@@ -1,7 +1,7 @@
 import type { CodegenConfig } from '@graphql-codegen/cli';
 
 const config: CodegenConfig = {
-  schema: 'https://medoraa-backend-w82d.onrender.com/graphql',
+  schema: 'https://medoraabackend.naijacloud.app/graphql',
   documents: './src/graphql/modules/**/*.gql',
   generates: {
     './src/graphql/modules/types.ts': {

@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Hooks } from '@repo/ui/graphql';
+import { useBottomSheetInsets } from '@repo/ui/hooks';
 
 
 const { height } = Dimensions.get('window');
@@ -48,6 +49,7 @@ const FALLBACK_SPECIALIZATION_LABELS: string[] = [
 export default function PhysicalClinicScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { bottomInset, contentPaddingBottom } = useBottomSheetInsets();
   const { markComplete } = useVerificationProgress();
   const [clinicName, setClinicName] = useState('');
   const [role, setRole] = useState('');
@@ -197,14 +199,18 @@ console.log("response from the specialization ", specialtiesData);
         enablePanDownToClose
         backdropComponent={renderBackdrop}
         backgroundStyle={{ backgroundColor: theme.card }}
-        handleIndicatorStyle={{ backgroundColor: theme.divider }}>
+        handleIndicatorStyle={{ backgroundColor: theme.divider }}
+        bottomInset={bottomInset}>
         <View style={styles.sheetHeader}>
           <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>
             Select Level
           </Text>
         </View>
         <BottomSheetScrollView
-          contentContainerStyle={styles.roleList}
+          contentContainerStyle={[
+            styles.roleList,
+            { paddingBottom: contentPaddingBottom },
+          ]}
           showsVerticalScrollIndicator={false}>
           {ROLE_OPTIONS.map((label) => {
             const selected = role === label;
@@ -252,14 +258,18 @@ console.log("response from the specialization ", specialtiesData);
         enablePanDownToClose
         backdropComponent={renderBackdrop}
         backgroundStyle={{ backgroundColor: theme.card }}
-        handleIndicatorStyle={{ backgroundColor: theme.divider }}>
+        handleIndicatorStyle={{ backgroundColor: theme.divider }}
+        bottomInset={bottomInset}>
         <View style={styles.sheetHeader}>
           <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>
             Select specialization
           </Text>
         </View>
         <BottomSheetScrollView
-          contentContainerStyle={styles.roleList}
+          contentContainerStyle={[
+            styles.roleList,
+            { paddingBottom: contentPaddingBottom },
+          ]}
           showsVerticalScrollIndicator>
           {specializationLabels.map((label) => {
             const selected = specialization === label;

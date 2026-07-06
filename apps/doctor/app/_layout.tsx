@@ -34,6 +34,7 @@ export default function RootLayout() {
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="notifications" />
                 <Stack.Screen name="appointments" />
+                <Stack.Screen name="create-wellness-program" />
               </Stack>
               <StatusBar style="auto" />
             </ThemeProvider>
